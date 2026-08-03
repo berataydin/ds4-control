@@ -11,15 +11,23 @@ final class AppState: ObservableObject {
     @Published var host: String { didSet { d.set(host, forKey: "host") } }
     @Published var ctxOverride: Int { didSet { d.set(ctxOverride, forKey: "ctxOverride") } }  // 0 = auto
     @Published var power: Int? { didSet { d.set(power ?? 0, forKey: "power") } }
+    /// Resident KV sessions ds4-server preallocates (`--batched-session N`). 1 omits the flag,
+    /// keeping the original single-session path. Memory grows with sessions × context.
+    @Published var concurrentSessions: Int { didSet { d.set(concurrentSessions, forKey: "concurrentSessions") } }
     @Published var kvDiskCache: Bool { didSet { d.set(kvDiskCache, forKey: "kvDiskCache") } }
-    /// Send `reasoning_effort: max` from the built-in chat so ds4 runs Think Max (engages only
-    /// when the server --ctx ≥ 393,216, which the defaults guarantee). Off = the chat's fast
-    /// no-think path. Coding-agent CLIs set their own per-request level, so this affects only chat.
-    @Published var thinkMaxChat: Bool { didSet { d.set(thinkMaxChat, forKey: "thinkMaxChat") } }
-    /// High-performance downloads (more parallel connections). Off by default: capped
-    /// concurrency keeps the connection count CGNAT-safe. See SupervisorService.download.
+    /// The chat's thinking level (Off / Standard / Max Think). Coding-agent CLIs set their
+    /// own per-request level, so this affects only the built-in chat.
+    @Published var thinkingMode: ThinkingMode { didSet { d.set(thinkingMode.rawValue, forKey: "thinkingMode") } }
+    /// High-performance downloads (64 parallel connections). Off by default: 8 connections
+    /// keeps the connection count CGNAT-safe. See SupervisorService.download.
     @Published var highPerformanceDownload: Bool {
         didSet { d.set(highPerformanceDownload, forKey: "highPerformanceDownload") }
+    }
+    /// One-time migration: the 0731 Flash weights orphaned the preview GGUFs. Until the
+    /// user answers the popup banner, they get a delete-and-reclaim offer. The key is
+    /// generation-versioned so a future weights refresh re-prompts.
+    @Published var legacyWeightsPromptDismissed: Bool {
+        didSet { d.set(legacyWeightsPromptDismissed, forKey: "legacyWeightsPromptDismissed0731") }
     }
     @Published var selectedVariant: Variant {
         didSet { d.set(selectedVariant.rawValue, forKey: "selectedVariant") }
@@ -36,9 +44,18 @@ final class AppState: ObservableObject {
         host = d.string(forKey: "host") ?? Self.defaultHost
         ctxOverride = d.integer(forKey: "ctxOverride")
         let p = d.integer(forKey: "power"); power = p > 0 ? p : nil
+        let sessions = d.integer(forKey: "concurrentSessions")
+        concurrentSessions = sessions >= 1 ? min(sessions, 16) : 1  // default 1, clamp 1...16
         kvDiskCache = d.object(forKey: "kvDiskCache") as? Bool ?? true  // default on
-        thinkMaxChat = d.bool(forKey: "thinkMaxChat")  // default off
+        if let storedMode = d.string(forKey: "thinkingMode").flatMap(ThinkingMode.init(rawValue:)) {
+            thinkingMode = storedMode
+        } else if d.object(forKey: "thinkMaxChat") != nil {
+            thinkingMode = d.bool(forKey: "thinkMaxChat") ? .max : .off  // legacy toggle migration
+        } else {
+            thinkingMode = .standard  // fresh-install default
+        }
         highPerformanceDownload = d.bool(forKey: "highPerformanceDownload")  // default off
+        legacyWeightsPromptDismissed = d.bool(forKey: "legacyWeightsPromptDismissed0731")  // default false
         let ram = systemRamGiB()
         let stored = d.string(forKey: "selectedVariant").flatMap(Variant.init(rawValue:))
         selectedVariant = stored ?? (ram >= 512 ? .pro : .flash)  // default Pro on ≥512 GiB
@@ -50,6 +67,22 @@ final class AppState: ObservableObject {
         ctxOverride > 0
             ? ctxOverride
             : defaultCtx(ramGiB: ramGiB, variant: selectedVariant, flashQuant: selectedFlashQuant)
+    }
+
+    /// Set the chat's thinking level. `.max` needs a context ≥ 393,216 (ds4's floor); below
+    /// it this returns `.needsCtxBump` WITHOUT changing the mode, so the caller can ask the
+    /// user about bumping the context first.
+    func requestThinkingMode(_ mode: ThinkingMode, currentCtx: Int) -> ThinkingModeGate {
+        if mode == .max && !thinkMax(ctx: currentCtx) { return .needsCtxBump }
+        thinkingMode = mode
+        return .applied
+    }
+
+    /// The user confirmed the context bump: pin the override to ds4's Max Think floor and
+    /// enable `.max`. (Restarting a running server is the caller's job.)
+    func applyMaxThinkCtxBump() {
+        ctxOverride = thinkMaxMinCtx
+        thinkingMode = .max
     }
 
     func normalizeHostForLaunch() -> String {

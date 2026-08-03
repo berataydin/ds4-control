@@ -53,7 +53,7 @@ final class SupervisorService: ObservableObject {
 
     /// The pluggable file fetch — defaults to the native parallel `HFDownloader`. Tests inject a fake
     /// that simulates progress/completion/failure without touching the network. `highPerformance`
-    /// selects the worker count (12 vs 64).
+    /// selects the worker count (8 vs 64).
     typealias FetchFile =
         @Sendable (
             _ file: String, _ destDir: URL, _ token: String?, _ highPerformance: Bool,
@@ -130,6 +130,7 @@ final class SupervisorService: ObservableObject {
         host: String,
         port: Int,
         power: Int?,
+        sessions: Int = 1,
         kvDiskDir: URL? = nil
     ) {
         guard state == .idle || isErrorState else { emitBadState("start"); return }
@@ -148,6 +149,9 @@ final class SupervisorService: ObservableObject {
             "--metal",
         ]
         if let power { args += ["--power", "\(power)"] }
+        // >1 preallocates N resident KV sessions so that many chats/agents generate at once.
+        // 1 must omit the flag: ds4 treats even `--batched-session 1` as batched mode (MTP off).
+        if sessions > 1 { args += ["--batched-session", "\(sessions)"] }
         if let kvDiskDir {
             // Persist compressed KV to disk so repeated/large prefixes (coding agents)
             // skip re-prefill across turns and restarts. README: "KV cache is a
@@ -192,6 +196,10 @@ final class SupervisorService: ObservableObject {
         }
         pendingRestart = nil
         state = .error(.crashed(tail: stderrTail.suffix(10).joined(separator: "\n")))
+        // A common cause is a bind conflict with a healthy ds4-server we don't own
+        // (orphaned by a force-quit, still loading at launch-probe time). If one answers
+        // the probe, adopt it instead of dead-ending in .error with an occupied port.
+        adoptHealthyServerIfPresent()
     }
 
     // MARK: - Stop
@@ -203,19 +211,44 @@ final class SupervisorService: ObservableObject {
         startupTimer?.invalidate(); startupTimer = nil
         if serverAttached {
             // We don't own the process (attached on launch) — terminate the listener.
-            killProcessListening(onPort: port)
+            // SIGTERM lands at once but the process needs time to die, and ds4 refuses a
+            // second instance while the old one lives — so .idle (and any pending restart)
+            // must wait for the pids to actually exit, not just for the signal.
             serverAttached = false
-            state = .idle
+            let pids = pidsListening(onPort: port)
+            for pid in pids { kill(pid, SIGTERM) }
+            finishAttachedStopWhenExited(pids: pids, waited: 0, escalated: false)
         } else {
             runner.terminate(graceSeconds: 30)
         }
     }
 
+    /// Poll until the TERM'd attached-server pids are gone; SIGKILL once after 30 s of
+    /// grace, and give up waiting at 35 s rather than stick in `.stopping` forever.
+    private func finishAttachedStopWhenExited(pids: [pid_t], waited: Double, escalated: Bool) {
+        let alive = pids.filter { kill($0, 0) == 0 }
+        if alive.isEmpty || waited >= 35 { completeAttachedStop(); return }
+        var escalated = escalated
+        if waited >= 30, !escalated {
+            for pid in alive { kill(pid, SIGKILL) }
+            escalated = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.finishAttachedStopWhenExited(pids: pids, waited: waited + 0.1, escalated: escalated)
+        }
+    }
+
+    private func completeAttachedStop() {
+        state = .idle
+        if let relaunch = pendingRestart { pendingRestart = nil; relaunch() }
+    }
+
     /// Apply changed settings to a running server: stop it, then relaunch with the
     /// supplied parameters once it has fully exited (so the port is free). When the
     /// running server was owned by us, `stop()` drains asynchronously and the relaunch
-    /// is deferred to `handleExit`; an attached orphan stops synchronously and relaunches
-    /// at once. No-op unless a server is running.
+    /// is deferred to `handleExit`; an attached orphan's stop completes when its pids
+    /// have actually exited (polled), with the relaunch deferred likewise.
+    /// No-op unless a server is running.
     func restart(
         variant: Variant,
         flashQuant: FlashQuant,
@@ -223,6 +256,7 @@ final class SupervisorService: ObservableObject {
         host: String,
         port: Int,
         power: Int?,
+        sessions: Int = 1,
         kvDiskDir: URL? = nil
     ) {
         guard state == .ready || state == .starting else { emitBadState("restart"); return }
@@ -230,13 +264,13 @@ final class SupervisorService: ObservableObject {
             guard let self else { return }
             self.start(
                 variant: variant, flashQuant: flashQuant, ctx: ctx, host: host, port: port, power: power,
-                kvDiskDir: kvDiskDir)
+                sessions: sessions, kvDiskDir: kvDiskDir)
         }
         stop()
         if state == .idle {
-            relaunch()  // stopped synchronously (attached, or the runner exited inline)
+            relaunch()  // stopped synchronously (the runner exited inline)
         } else {
-            pendingRestart = relaunch  // owned process draining its grace period
+            pendingRestart = relaunch  // deferred until stop drains (handleExit, or the attached-pid poll)
         }
     }
 
@@ -245,11 +279,21 @@ final class SupervisorService: ObservableObject {
     /// new one — avoids a port conflict and a second multi-hundred-GB load.
     func resumeRunningServerIfAny(port: Int) {
         guard state == .idle else { return }
+        adoptHealthyServerIfPresent(port: port)
+    }
+
+    /// Attach to a ds4-server already answering on `port` (default: the configured port) as
+    /// `.ready`. Runs at launch and after an unexpected exit (the typical cause is a bind
+    /// conflict with a healthy server we don't own). Applies only while idle/errored, so a
+    /// slow probe can never clobber a newer start/stop.
+    private func adoptHealthyServerIfPresent(port: Int? = nil) {
+        let port = port ?? self.port
+        guard state == .idle || isErrorState else { return }
         Task { [weak self] in
             guard let probe = self?.serverProbe else { return }
             let data = await probe(port)
             await MainActor.run {
-                guard let self, self.state == .idle, let data else { return }
+                guard let self, let data, self.state == .idle || self.isErrorState else { return }
                 self.serverAttached = true
                 self.port = port
                 self.activeModel = loadedModelName(from: data) ?? "ds4-server"
@@ -262,7 +306,9 @@ final class SupervisorService: ObservableObject {
         }
     }
 
-    private func killProcessListening(onPort port: Int) {
+    /// PIDs of processes listening on `port` (via lsof). Used by the attached-server stop:
+    /// we don't own the process object, so its exit is observed by polling, not callback.
+    private func pidsListening(onPort port: Int) -> [pid_t] {
         let lsof = Process()
         lsof.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
         lsof.arguments = ["-ti", "tcp:\(port)", "-sTCP:LISTEN"]
@@ -273,12 +319,11 @@ final class SupervisorService: ObservableObject {
             try lsof.run()
             lsof.waitUntilExit()
         } catch {
-            return
+            return []
         }
         let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-        for line in out.split(whereSeparator: { $0 == "\n" }) {
-            if let pid = Int32(line.trimmingCharacters(in: .whitespaces)) { kill(pid, SIGTERM) }
-        }
+        return out.split(whereSeparator: { $0 == "\n" })
+            .compactMap { Int32($0.trimmingCharacters(in: .whitespaces)) }
     }
 
     // MARK: - Download
@@ -461,6 +506,31 @@ final class SupervisorService: ObservableObject {
         }
         ggufStoreVersion += 1
         return removed
+    }
+
+    // MARK: - Legacy preview weights (pre-0731)
+    /// Pre-0731 Flash GGUFs + their download partials still on disk. The 0731 switch
+    /// orphaned them: nothing in the app references these names anymore.
+    func legacyPreviewGgufURLs() -> [URL] {
+        let base = ggufBaseDir()
+        return Quant.legacyPreviewFilenames.flatMap { name in
+            [name, name + ".part", name + ".part.dl"]
+                .map { base.appendingPathComponent($0) }
+                .filter { FileManager.default.fileExists(atPath: $0.path) }
+        }
+    }
+    /// Total size of the orphaned files, for the migration banner label.
+    func legacyPreviewGgufBytes() -> Int64 {
+        legacyPreviewGgufURLs().reduce(0) { $0 + fileSize($1) }
+    }
+    /// Delete the orphaned pre-0731 files. Gate the call site to idle/error, exactly like
+    /// cleanupUnusedFlashQuants. Returns the removed filenames.
+    @discardableResult
+    func removeLegacyPreviewGgufs() -> [String] {
+        let urls = legacyPreviewGgufURLs()
+        for u in urls { try? FileManager.default.removeItem(at: u) }
+        if !urls.isEmpty { ggufStoreVersion += 1 }
+        return urls.map(\.lastPathComponent)
     }
 
     // MARK: - Health

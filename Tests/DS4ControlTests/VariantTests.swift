@@ -22,14 +22,21 @@ final class VariantTests: XCTestCase {
             "DeepSeek-V4-Pro-IQ2XXS-w2Q2K-AProjQ8-SExpQ8-OutQ8-Instruct-imatrix.gguf")
         XCTAssertEqual(
             Quant.for(.flash, flashQuant: .q4).ggufFilename,
-            "DeepSeek-V4-Flash-Q4KExperts-F16HC-F16Compressor-F16Indexer-Q8Attn-Q8Shared-Q8Out-chat-v2-imatrix.gguf")
+            "DeepSeek-V4-Flash-Q4KExperts-F16HC-F16Compressor-F16Indexer-Q8Attn-Q8Shared-Q8Out-chat-v2-imatrix-0731.gguf"
+        )
         XCTAssertEqual(
             Quant.for(.flash, flashQuant: .q2).ggufFilename,
-            "DeepSeek-V4-Flash-IQ2XXS-w2Q2K-AProjQ8-SExpQ8-OutQ8-chat-v2-imatrix.gguf")
+            "DeepSeek-V4-Flash-IQ2XXS-w2Q2K-AProjQ8-SExpQ8-OutQ8-chat-v2-imatrix-0731.gguf")
         XCTAssertEqual(
             Quant.for(.flash, flashQuant: .q2q4).ggufFilename,
-            "DeepSeek-V4-Flash-Layers37-42Q4KExperts-OtherExpertLayersIQ2XXSGateUp-Q2KDown-AProjQ8-SExpQ8-OutQ8-chat-v2-imatrix-fixed.gguf"
+            "DeepSeek-V4-Flash-Layers37-42Q4KExperts-OtherExpertLayersIQ2XXSGateUp-Q2KDown-AProjQ8-SExpQ8-OutQ8-chat-v2-imatrix-fixed-0731.gguf"
         )
+    }
+    func testLegacyPreviewFilenames() {
+        XCTAssertEqual(Quant.legacyPreviewFilenames.count, 3)
+        for q in [Quant.q2Imatrix, .q2q4Imatrix, .q4Imatrix] {
+            XCTAssertFalse(Quant.legacyPreviewFilenames.contains(q.ggufFilename))  // no overlap with 0731 names
+        }
     }
     func testWeights() {
         XCTAssertEqual(Quant.for(.pro, flashQuant: .q2q4).weightsGiB, 432, accuracy: 1)
@@ -43,7 +50,7 @@ final class VariantTests: XCTestCase {
         XCTAssertEqual(FlashQuant.q2.quant, .q2Imatrix)
         XCTAssertEqual(FlashQuant.q2q4.quant, .q2q4Imatrix)
         XCTAssertEqual(FlashQuant.q4.quant, .q4Imatrix)
-        XCTAssertEqual(FlashQuant.q2q4.label, "q2-q4-imatrix · ~91 GiB")  // resident size
+        XCTAssertEqual(FlashQuant.q2q4.label, "0731-q2-q4-imatrix · ~91 GiB")  // 0731 generation + resident size
     }
     func testFlashQuantFitAndDefault() {
         XCTAssertEqual(defaultFlashQuant(ramGiB: 512), .q2q4)  // requested default fits
