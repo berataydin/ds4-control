@@ -73,6 +73,12 @@ struct SettingsView: View {
         Form {
             Section {
                 Toggle("Open DS4 Control at login", isOn: launchAtLoginBinding)
+                if let err = app.launchAtLoginError {
+                    Text(err)
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             } header: {
                 Text("Startup")
             } footer: {
@@ -207,7 +213,15 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 480, height: 600)
-        .onAppear { WindowChrome.windowOpened(title: "DS4 Control Settings") }
+        .onAppear {
+            app.refreshLaunchAtLoginStatus()  // pick up any change made in System Settings
+            WindowChrome.windowOpened(title: "DS4 Control Settings")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            // After approving the login item in System Settings the OS state can change while
+            // we're backgrounded; re-sync the snapshot when the app becomes active again.
+            app.refreshLaunchAtLoginStatus()
+        }
         .onDisappear { WindowChrome.windowClosed() }
     }
 

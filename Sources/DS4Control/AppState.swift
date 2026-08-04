@@ -25,10 +25,14 @@ final class AppState: ObservableObject {
         didSet { d.set(highPerformanceDownload, forKey: "highPerformanceDownload") }
     }
     /// Whether DS4 Control opens automatically when the user logs in. Registered as a macOS
-    /// login item via SMAppService. The OS is the source of truth: this mirrors
-    /// `SMAppService.mainApp.status == .enabled` (see init and `setLaunchAtLogin(_:)`), so it
-    /// stays correct even if the login item is changed from System Settings.
+    /// login item via SMAppService. This is a snapshot of the OS state —
+    /// `SMAppService.mainApp.status == .enabled` — refreshed on init, after each
+    /// `setLaunchAtLogin(_:)`, and via `refreshLaunchAtLoginStatus()` (e.g. when the app
+    /// becomes active again after the user approves the item in System Settings).
     @Published var launchAtLogin: Bool
+    /// A user-visible message describing why a launch-at-login change failed, or nil. Cleared
+    /// on the next attempt / refresh.
+    @Published var launchAtLoginError: String?
     /// One-time migration: the 0731 Flash weights orphaned the preview GGUFs. Until the
     /// user answers the popup banner, they get a delete-and-reclaim offer. The key is
     /// generation-versioned so a future weights refresh re-prompts.
@@ -106,6 +110,7 @@ final class AppState: ObservableObject {
     /// un-bundled from the build directory, where there's no real .app to register) the
     /// toggle reverts to off so the UI never lies.
     func setLaunchAtLogin(_ enabled: Bool) {
+        launchAtLoginError = nil
         do {
             if enabled {
                 try SMAppService.mainApp.register()
@@ -113,8 +118,10 @@ final class AppState: ObservableObject {
                 try SMAppService.mainApp.unregister()
             }
         } catch {
-            // Fall through: reflect the OS's actual state below (e.g. no real .app to
-            // register when running un-bundled from the build directory).
+            // Reflect the OS's actual state below and surface the failure to the user (e.g.
+            // running un-bundled from the build directory, where there's no real .app to
+            // register).
+            launchAtLoginError = error.localizedDescription
         }
         let status = SMAppService.mainApp.status
         launchAtLogin = status == .enabled
@@ -123,5 +130,12 @@ final class AppState: ObservableObject {
             // can approve, and keep the toggle off until it actually takes effect.
             SMAppService.openSystemSettingsLoginItems()
         }
+    }
+
+    /// Re-read the OS login-item state into `launchAtLogin`. Call after the user may have
+    /// changed it externally — e.g. approving the item in System Settings, which flips
+    /// `SMAppService.mainApp.status` to `.enabled` while this snapshot is still stale.
+    func refreshLaunchAtLoginStatus() {
+        launchAtLogin = SMAppService.mainApp.status == .enabled
     }
 }
