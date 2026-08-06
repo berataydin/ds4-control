@@ -2,7 +2,9 @@
 
 [![CI](https://github.com/notatestuser/ds4-control/actions/workflows/ci.yml/badge.svg)](https://github.com/notatestuser/ds4-control/actions/workflows/ci.yml)
 
-A macOS menu bar pane for **DeepSeek V4** via [`ds4`](https://github.com/antirez/ds4). It launches, supervises, and monitors a local ds4 server, lets you pick **V4 Pro** or **V4 Flash (0731)** with **1M** context, and shows live resource use.
+A macOS menu bar pane for **DeepSeek V4** via [`ds4`](https://github.com/antirez/ds4).
+
+It launches, supervises, and monitors a local ds4 server, lets you pick **V4 Pro** or **V4 Flash (0731)** with **1M** context, and shows resource use.
 
 **Launch Pi, Claude Code or BYOC (Bring Your Own CLI) for local agentic coding.**
 
@@ -53,7 +55,7 @@ DS4_DIR="$PWD/external/ds4" swift run        # build + run the dev app against t
 ## Requirements
 
 - **Apple Silicon**
-- You do **not** pre-download the model — DS4 Control downloads it for you with a built-in parallel downloader, resumable across restarts.
+- You don't pre-download the model — DS4 Control downloads it for you with a built-in parallel downloader, resumable across restarts.
 - **Auth (optional):** the model repository is public, so no token is required for normal use.
 - **RAM** — see below.
 
