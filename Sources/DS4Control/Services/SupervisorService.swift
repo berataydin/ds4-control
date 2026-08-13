@@ -8,6 +8,12 @@ private final class DownloadStderrBuffer: @unchecked Sendable {
     var text = ""
 }
 
+enum RestartResult: Equatable {
+    case accepted
+    case rejected(Feasibility)
+    case ignored
+}
+
 @MainActor
 final class SupervisorService: ObservableObject {
     @Published private(set) var state: ServerState = .idle
@@ -25,8 +31,6 @@ final class SupervisorService: ObservableObject {
     /// Bumped whenever the on-disk gguf set changes via cleanup, so SwiftUI views that read
     /// `isFlashQuantDownloaded` (the Settings picker) re-render.
     @Published private(set) var ggufStoreVersion = 0
-
-    var thinkMaxActive: Bool { thinkMax(ctx: ctx) }
 
     let ds4Dir: URL
     let runner: ProcessRunner
@@ -61,15 +65,29 @@ final class SupervisorService: ObservableObject {
         ) async throws -> Void
     private let fetchFile: FetchFile
 
+    /// Returns the launch config's feasibility. Injectable so tests don't depend on the
+    /// host's RAM/sysctl state (CI runners are far smaller than any supported machine).
+    typealias WiredLimitGate =
+        (_ variant: Variant, _ flashQuant: FlashQuant, _ ctx: Int, _ sessions: Int) -> Feasibility
+    static let defaultWiredLimitGate: WiredLimitGate = { variant, flashQuant, ctx, sessions in
+        let ram = systemRamGiB()
+        return feasibility(
+            ramGiB: ram, variant: variant, flashQuant: flashQuant, ctx: ctx,
+            wiredLimitMB: effectiveWiredLimitMB(ramGiB: ram), sessions: sessions)
+    }
+    private let wiredLimitGate: WiredLimitGate
+
     init(
         ds4Dir: URL, runner: ProcessRunner, serverProbe: ((Int) async -> Data?)? = nil,
-        ggufBaseURL: URL? = nil, downloadRunner: ProcessRunner? = nil, fetchFile: FetchFile? = nil
+        ggufBaseURL: URL? = nil, downloadRunner: ProcessRunner? = nil, fetchFile: FetchFile? = nil,
+        wiredLimitGate: WiredLimitGate? = nil
     ) {
         self.ds4Dir = ds4Dir
         self.runner = runner
         self.serverProbe = serverProbe ?? SupervisorService.defaultServerProbe
         self.ggufBaseOverride = ggufBaseURL
         self.downloadRunner = downloadRunner ?? RealProcessRunner()
+        self.wiredLimitGate = wiredLimitGate ?? Self.defaultWiredLimitGate
         self.fetchFile =
             fetchFile ?? { file, dir, token, highPerformance, prog in
                 try await HFDownloader(repo: SupervisorService.ggufRepo).download(
@@ -117,6 +135,12 @@ final class SupervisorService: ObservableObject {
     /// Disk KV-cache budget (MB) when `kvDiskDir` is provided. ds4's compressed KV
     /// is tiny, so this holds many cached prefixes; generous but trivial on modern SSDs.
     static let kvDiskSpaceMB = 16384
+    /// Feasibility mirrors ds4's defaults, so inherited allocator tuning is removed
+    /// from the server environment before the gate-approved process launches.
+    private static let allocatorEnvironmentKeys: Set<String> = [
+        "DS4_METAL_PREFILL_CHUNK",
+        "DS4_METAL_GRAPH_RAW_CAP",
+    ]
 
     private static func normalizedBindHost(_ host: String) -> String {
         let trimmed = host.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -131,10 +155,28 @@ final class SupervisorService: ObservableObject {
         port: Int,
         power: Int?,
         sessions: Int = 1,
-        kvDiskDir: URL? = nil
+        kvDiskDir: URL? = nil,
+        overrideWiredLimitGate: Bool = false
     ) {
         guard state == .idle || isErrorState else { emitBadState("start"); return }
         if let e = validateDs4Dir() { state = .error(e); return }
+        if let reason = launchBoundsError(variant: variant, ctx: ctx, sessions: sessions) {
+            state = .error(.configurationBlocked(reason: reason))
+            return
+        }
+        // Defense-in-depth for the popup gate: refuse configs whose GPU-wired working set
+        // exceeds the effective Metal wired limit (starting anyway pages the model and
+        // hangs the machine). The UI's confirmed "Start anyway" passes the override.
+        switch wiredLimitGate(variant, flashQuant, ctx, sessions) {
+        case let .blocked(reason):
+            state = .error(.configurationBlocked(reason: reason))
+            return
+        case let .wiredLimitTooLow(required, advisory) where !overrideWiredLimitGate:
+            state = .error(.wiredLimitTooLow(requiredMB: required, advisoryMB: advisory))
+            return
+        case .standard, .wiredLimitTooLow:
+            break
+        }
         let gguf = ggufURL(for: variant, flashQuant: flashQuant)
         guard FileManager.default.fileExists(atPath: gguf.path) else {
             state = .error(.modelMissing(filename: gguf.lastPathComponent)); return
@@ -167,6 +209,7 @@ final class SupervisorService: ObservableObject {
             try runner.launch(
                 executable: ds4Dir.appendingPathComponent("ds4-server"),
                 args: args, cwd: ds4Dir, env: [:],
+                removingEnvironmentKeys: Self.allocatorEnvironmentKeys,
                 onStderrLine: { [weak self] line in Self.onMain { self?.handleStderr(line) } },
                 onExit: { [weak self] code in Self.onMain { self?.handleExit(code) } })
         } catch {
@@ -249,6 +292,7 @@ final class SupervisorService: ObservableObject {
     /// is deferred to `handleExit`; an attached orphan's stop completes when its pids
     /// have actually exited (polled), with the relaunch deferred likewise.
     /// No-op unless a server is running.
+    @discardableResult
     func restart(
         variant: Variant,
         flashQuant: FlashQuant,
@@ -257,14 +301,35 @@ final class SupervisorService: ObservableObject {
         port: Int,
         power: Int?,
         sessions: Int = 1,
-        kvDiskDir: URL? = nil
-    ) {
-        guard state == .ready || state == .starting else { emitBadState("restart"); return }
+        kvDiskDir: URL? = nil,
+        overrideWiredLimitGate: Bool = false
+    ) -> RestartResult {
+        guard state == .ready || state == .starting else {
+            emitBadState("restart")
+            return .ignored
+        }
+        if let reason = launchBoundsError(variant: variant, ctx: ctx, sessions: sessions) {
+            recentLog.append("ignored 'restart': \(reason)")
+            return .rejected(.blocked(reason: reason))
+        }
+        // Gate BEFORE stopping: a refused restart keeps the healthy running server instead
+        // of tearing it down into an error state.
+        let feasibility = wiredLimitGate(variant, flashQuant, ctx, sessions)
+        switch feasibility {
+        case let .blocked(reason):
+            recentLog.append("ignored 'restart': \(reason)")
+            return .rejected(feasibility)
+        case .wiredLimitTooLow where !overrideWiredLimitGate:
+            recentLog.append("ignored 'restart': Metal wired limit below the new config's working set")
+            return .rejected(feasibility)
+        case .standard, .wiredLimitTooLow:
+            break
+        }
         let relaunch: () -> Void = { [weak self] in
             guard let self else { return }
             self.start(
                 variant: variant, flashQuant: flashQuant, ctx: ctx, host: host, port: port, power: power,
-                sessions: sessions, kvDiskDir: kvDiskDir)
+                sessions: sessions, kvDiskDir: kvDiskDir, overrideWiredLimitGate: overrideWiredLimitGate)
         }
         stop()
         if state == .idle {
@@ -272,6 +337,7 @@ final class SupervisorService: ObservableObject {
         } else {
             pendingRestart = relaunch  // deferred until stop drains (handleExit, or the attached-pid poll)
         }
+        return .accepted
     }
 
     /// On launch, if a ds4-server is already serving on `port` (orphaned from a prior
@@ -342,7 +408,7 @@ final class SupervisorService: ObservableObject {
         if let e = validateDs4Dir() { state = .error(e); return }
         let q = Quant.for(variant, flashQuant: flashQuant)
         let baseDir = ggufBaseDir()
-        let expectedBytes = Int64(q.weightsGiB * 1_073_741_824)
+        let expectedBytes = Int64(q.ggufBytes)
         download = DownloadProgress(pct: 0, file: q.ggufFilename, receivedBytes: 0, totalBytes: expectedBytes)
         state = .downloading
         lastDownloadSample = nil

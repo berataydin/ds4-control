@@ -6,13 +6,20 @@ private final class FakeRunner: ProcessRunner {
     var isRunning = false
     var lastArgs: [String] = []
     var lastEnv: [String: String] = [:]
+    var lastRemovedEnvironmentKeys: Set<String> = []
     private var stderr: (@Sendable (String) -> Void)?
     private var exit: (@Sendable (Int32) -> Void)?
     func launch(
         executable: URL, args: [String], cwd: URL, env: [String: String],
+        removingEnvironmentKeys: Set<String>,
         onStderrLine: @escaping @Sendable (String) -> Void, onExit: @escaping @Sendable (Int32) -> Void
     ) throws {
-        lastArgs = args; lastEnv = env; isRunning = true; stderr = onStderrLine; exit = onExit
+        lastArgs = args
+        lastEnv = env
+        lastRemovedEnvironmentKeys = removingEnvironmentKeys
+        isRunning = true
+        stderr = onStderrLine
+        exit = onExit
     }
     func terminate(graceSeconds: Double) { isRunning = false; exit?(0) }
     func emit(_ line: String) { stderr?(line) }
@@ -24,7 +31,8 @@ final class SupervisorStateMachineTests: XCTestCase {
     // `probe` defaults to a hermetic "no server" — an unexpected exit now triggers an
     // adoption probe, and the real default would hit a live ds4-server on the dev machine.
     fileprivate func makeSupervisor(
-        _ runner: FakeRunner, probe: @escaping (Int) async -> Data? = { _ in nil }
+        _ runner: FakeRunner, probe: @escaping (Int) async -> Data? = { _ in nil },
+        wiredLimitGate: @escaping SupervisorService.WiredLimitGate = { _, _, _, _ in .standard }
     ) throws -> SupervisorService {
         let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(
@@ -39,7 +47,9 @@ final class SupervisorStateMachineTests: XCTestCase {
         let hostQuant = Quant.for(.flash, flashQuant: .q2q4)
         let gg = dir.appendingPathComponent("gguf").appendingPathComponent(hostQuant.ggufFilename)
         FileManager.default.createFile(atPath: gg.path, contents: Data("gguf".utf8))
-        return SupervisorService(ds4Dir: dir, runner: runner, serverProbe: probe)
+        return SupervisorService(
+            ds4Dir: dir, runner: runner, serverProbe: probe,
+            wiredLimitGate: wiredLimitGate)  // tests are host-independent: skip the RAM/sysctl gate
     }
 
     func testStartReachesReady() throws {
@@ -52,6 +62,27 @@ final class SupervisorStateMachineTests: XCTestCase {
         XCTAssertTrue(r.lastArgs.contains("250000"))
         XCTAssertEqual(r.lastArgs[r.lastArgs.firstIndex(of: "--host")! + 1], "0.0.0.0")
         XCTAssertFalse(r.lastArgs.contains("--kv-disk-dir"))  // omitted when no dir passed
+        XCTAssertEqual(r.lastEnv, [:])
+        XCTAssertEqual(
+            r.lastRemovedEnvironmentKeys,
+            ["DS4_METAL_PREFILL_CHUNK", "DS4_METAL_GRAPH_RAW_CAP"])
+    }
+
+    func testRealRunnerPreservesInheritedEnvironmentWhileRemovingKeys() {
+        let environment = RealProcessRunner.childEnvironment(
+            inherited: [
+                "PATH": "/usr/bin", "HOME": "/tmp/home", "TMPDIR": "/tmp",
+                "DS4_METAL_PREFILL_CHUNK": "0",
+            ],
+            overrides: ["DS4_CONTROL_TEST": "present"],
+            removing: ["DS4_METAL_PREFILL_CHUNK", "DS4_METAL_GRAPH_RAW_CAP"])
+
+        XCTAssertEqual(environment["PATH"], "/usr/bin")
+        XCTAssertEqual(environment["HOME"], "/tmp/home")
+        XCTAssertEqual(environment["TMPDIR"], "/tmp")
+        XCTAssertEqual(environment["DS4_CONTROL_TEST"], "present")
+        XCTAssertNil(environment["DS4_METAL_PREFILL_CHUNK"])
+        XCTAssertNil(environment["DS4_METAL_GRAPH_RAW_CAP"])
     }
     func testStartNormalizesHostBeforeLaunch() throws {
         let r = FakeRunner(); let s = try makeSupervisor(r)
@@ -85,6 +116,46 @@ final class SupervisorStateMachineTests: XCTestCase {
         let r2 = FakeRunner(); let s2 = try makeSupervisor(r2)
         s2.start(variant: .flash, flashQuant: .q2q4, ctx: 250_000, host: "127.0.0.1", port: 8000, power: nil)
         XCTAssertFalse(r2.lastArgs.contains("--batched-session"))
+    }
+    func testStartRejectsOutOfRangeLaunchBounds() throws {
+        let r = FakeRunner(); let s = try makeSupervisor(r)
+        s.start(
+            variant: .flash, flashQuant: .q2q4, ctx: Int.max,
+            host: "127.0.0.1", port: 8000, power: nil)
+        XCTAssertEqual(
+            s.state,
+            .error(.configurationBlocked(reason: "Context size must be between 1 and 1,000,000 tokens.")))
+        XCTAssertFalse(r.isRunning)
+
+        s.start(
+            variant: .flash, flashQuant: .q2q4, ctx: 250_000,
+            host: "127.0.0.1", port: 8000, power: nil,
+            sessions: maxConcurrentSessions + 1)
+        XCTAssertEqual(
+            s.state,
+            .error(.configurationBlocked(reason: "Concurrent sessions must be between 1 and 16.")))
+        XCTAssertFalse(r.isRunning)
+    }
+    func testWiredLimitGateReceivesRequestedSessionsOnStartAndRestart() throws {
+        let r = FakeRunner()
+        var gatedSessions: [Int] = []
+        let s = try makeSupervisor(
+            r,
+            wiredLimitGate: { _, _, _, sessions in
+                gatedSessions.append(sessions)
+                return .standard
+            })
+        s.start(
+            variant: .flash, flashQuant: .q2q4, ctx: 250_000, host: "127.0.0.1", port: 8000,
+            power: nil, sessions: 3)
+        XCTAssertEqual(gatedSessions, [3])
+
+        r.emit("ds4-server: listening on http://127.0.0.1:8000")
+        let result = s.restart(
+            variant: .flash, flashQuant: .q2q4, ctx: 250_000, host: "127.0.0.1", port: 8000,
+            power: nil, sessions: 5)
+        XCTAssertEqual(result, .accepted)
+        XCTAssertEqual(gatedSessions, [3, 5, 5])
     }
     func testCrashIsError() throws {
         let r = FakeRunner(); let s = try makeSupervisor(r)
@@ -137,6 +208,74 @@ final class SupervisorStateMachineTests: XCTestCase {
         s.restart(variant: .flash, flashQuant: .q2q4, ctx: 393_216, host: "127.0.0.1", port: 8000, power: nil)
         XCTAssertEqual(s.state, .idle)  // no-op; nothing to restart
     }
+    func testMaxThinkRejectedRestartDoesNotCommitAppState() throws {
+        let r = FakeRunner()
+        let rejection = Feasibility.wiredLimitTooLow(requiredMB: 100_000, advisoryMB: 110_000)
+        let s = try makeSupervisor(
+            r,
+            wiredLimitGate: { _, _, ctx, _ in ctx == thinkMaxMinCtx ? rejection : .standard })
+        s.start(
+            variant: .flash, flashQuant: .q2q4, ctx: 100_000,
+            host: "127.0.0.1", port: 8000, power: nil)
+        r.emit("ds4-server: listening on http://127.0.0.1:8000")
+
+        let app = AppState(defaults: UserDefaults(suiteName: "test.\(UUID().uuidString)")!)
+        app.selectedVariant = .flash
+        app.selectedFlashQuant = .q2q4
+        app.ctxOverride = 100_000
+        app.thinkingMode = .standard
+        app.kvDiskCache = false
+
+        XCTAssertEqual(
+            ThinkingModePrompt.restartWithMaxThink(app: app, supervisor: s, ramGiB: 128),
+            .rejected(rejection))
+        XCTAssertEqual(app.ctxOverride, 100_000)
+        XCTAssertEqual(app.thinkingMode, .standard)
+        XCTAssertEqual(s.state, .ready)
+        XCTAssertEqual(s.ctx, 100_000)
+
+        XCTAssertEqual(
+            ThinkingModePrompt.restartWithMaxThink(
+                app: app, supervisor: s, overrideWiredLimitGate: true, ramGiB: 128),
+            .accepted)
+        XCTAssertEqual(app.ctxOverride, thinkMaxMinCtx)
+        XCTAssertEqual(app.thinkingMode, .max)
+        XCTAssertEqual(s.state, .starting)
+        XCTAssertTrue(r.lastArgs.contains(String(thinkMaxMinCtx)))
+    }
+    func testMaxThinkRestartIsUnavailableBelow128GiB() throws {
+        let r = FakeRunner()
+        var gateCalls = 0
+        let s = try makeSupervisor(
+            r,
+            wiredLimitGate: { _, _, _, _ in
+                gateCalls += 1
+                return .standard
+            })
+        s.start(
+            variant: .flash, flashQuant: .q2q4, ctx: 100_000,
+            host: "127.0.0.1", port: 8000, power: nil)
+        r.emit("ds4-server: listening on http://127.0.0.1:8000")
+        let callsAfterStart = gateCalls
+
+        let app = AppState(
+            defaults: UserDefaults(suiteName: "test.\(UUID().uuidString)")!, ramGiB: 96)
+        app.selectedVariant = .flash
+        app.selectedFlashQuant = .q2q4
+        app.ctxOverride = 100_000
+
+        let result = ThinkingModePrompt.restartWithMaxThink(
+            app: app, supervisor: s, overrideWiredLimitGate: true, ramGiB: 96)
+
+        guard case .rejected(.blocked) = result else {
+            return XCTFail("expected Max Think to be blocked below 128 GiB, got \(result)")
+        }
+        XCTAssertEqual(gateCalls, callsAfterStart)
+        XCTAssertEqual(app.ctxOverride, 100_000)
+        XCTAssertEqual(app.thinkingMode, .standard)
+        XCTAssertEqual(s.state, .ready)
+        XCTAssertEqual(s.ctx, 100_000)
+    }
     func testMissingModel() throws {
         let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -145,7 +284,9 @@ final class SupervisorStateMachineTests: XCTestCase {
             FileManager.default.createFile(atPath: u.path, contents: Data("#!/bin/sh\n".utf8))
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: u.path)
         }
-        let s = SupervisorService(ds4Dir: dir, runner: FakeRunner())
+        let s = SupervisorService(
+            ds4Dir: dir, runner: FakeRunner(),
+            wiredLimitGate: { _, _, _, _ in .standard })
         s.start(variant: .flash, flashQuant: .q2q4, ctx: 250_000, host: "127.0.0.1", port: 8000, power: nil)
         if case .error(.modelMissing) = s.state {} else { XCTFail("expected modelMissing, got \(s.state)") }
     }

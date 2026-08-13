@@ -139,13 +139,25 @@ struct PopupView: View {
                             port: supervisor.port,
                             modelId: AgentLauncher.modelId(
                                 for: supervisor.activeModel, fallback: app.selectedVariant),
-                            contextWindow: supervisor.ctx)
+                            contextWindow: supervisor.ctx,
+                            allowMaxThink: supportsMaxThink(ramGiB: ram)
+                                && thinkMax(ctx: supervisor.ctx))
                     } else {
                         showStartHint = true
                     }
                 } label: {
                     Image(systemName: "terminal").font(.system(size: 28))
                 }.buttonStyle(.plain).help("Open a coding agent in Terminal")
+                // Dev/test-only shortcut: production users reach the help window from
+                // the gated-Start notice instead.
+                if emulatedWiredLimitMB() != nil || isDevBuild() {
+                    Button {
+                        WindowChrome.willOpenWindow()
+                        openWindow(id: "wiredhelp")
+                    } label: {
+                        Image(systemName: "questionmark.circle").font(.system(size: 28))
+                    }.buttonStyle(.plain).help("Metal wired memory limit help")
+                }
                 Spacer()
                 Button("Quit") { NSApplication.shared.terminate(nil) }.buttonStyle(.plain).foregroundStyle(.secondary)
             }
@@ -252,6 +264,11 @@ struct PopupView: View {
         case let .crashed(tail): return "ds4-server exited unexpectedly. \(tail.suffix(160))"
         case let .downloadFailed(detail): return "Download failed (\(detail))."
         case let .badState(message): return message
+        case let .configurationBlocked(reason): return reason
+        case let .wiredLimitTooLow(requiredMB, _):
+            return
+                "Metal wired limit is below this config's ~\(roundedUpGiB(fromMB: requiredMB)) GiB working set. "
+                + "Use \"Metal wired limit help…\" under Start to fix it."
         }
     }
 
@@ -280,7 +297,6 @@ struct PopupView: View {
         case .starting: return "Starting"
         case .ready:
             return "\(supervisor.activeModel ?? "") · :\(supervisor.port)"
-                + (supervisor.thinkMaxActive ? " · Think-Max" : "")
         case .stopping: return "Stopping"
         case .error: return "Error"
         }

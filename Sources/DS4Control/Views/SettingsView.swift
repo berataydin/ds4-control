@@ -33,10 +33,24 @@ struct SettingsView: View {
 
     private var ctxHint: String {
         if app.ctxOverride > 0 {
+            if !supportsMaxThink(ramGiB: ram) {
+                return "Max Think is unavailable below 128 GiB unified memory."
+            }
             return "Max Think is available when context ≥ 393,216."
         }
         return
             "Auto: \(defaultCtx(ramGiB: ram, variant: app.selectedVariant, flashQuant: app.selectedFlashQuant).formatted()) tokens (based on \(Int(ram)) GiB RAM)."
+    }
+
+    private var thinkingHint: String {
+        if !supportsMaxThink(ramGiB: ram) {
+            return
+                "Max Think requires at least 128 GiB unified memory. "
+                + "Coding agents set their own level; this only affects the built-in chat."
+        }
+        return
+            "Max Think needs a context of at least 393,216 — you'll be asked to raise it. "
+            + "Coding agents set their own level; this only affects the built-in chat."
     }
 
     private var restartHint: String {
@@ -60,13 +74,13 @@ struct SettingsView: View {
     private var ctxText: Binding<String> {
         Binding(
             get: {
-                let active =
-                    app.ctxOverride > 0
-                    ? app.ctxOverride
-                    : defaultCtx(ramGiB: ram, variant: app.selectedVariant, flashQuant: app.selectedFlashQuant)
-                return String(active)
+                String(app.effectiveCtx(ramGiB: ram))
             },
-            set: { app.ctxOverride = Int($0.filter(\.isNumber)) ?? 0 })
+            set: {
+                let digits = $0.filter(\.isNumber)
+                guard !digits.isEmpty else { app.ctxOverride = 0; return }
+                app.ctxOverride = min(Int(digits) ?? app.selectedVariant.ctxCeiling, app.selectedVariant.ctxCeiling)
+            })
     }
 
     var body: some View {
@@ -115,7 +129,7 @@ struct SettingsView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 LabeledContent {
                     HStack(spacing: 10) {
-                        Slider(value: sessionsBinding, in: 1...16, step: 1)
+                        Slider(value: sessionsBinding, in: 1...Double(maxConcurrentSessions), step: 1)
                         Text("\(app.concurrentSessions)")
                             .monospacedDigit().foregroundStyle(.secondary)
                             .frame(width: 30, alignment: .trailing)
@@ -146,13 +160,14 @@ struct SettingsView: View {
                             + "Memory use grows with sessions × context size. "
                             + "Applies on next server start or restart.")
                     Text(
-                        "Disk KV cache keeps the prompt cache on disk so repeated prompts start "
-                            + "faster. Applies on next server start or restart.")
+                        "Disk KV cache checkpoints session state so conversations can resume faster "
+                            + "after slot reuse or restart. It does not reduce resident memory. "
+                            + "Applies on next server start or restart.")
                 }
             }
 
             Section {
-                Button("Apply & Restart Server", action: restart)
+                Button("Apply & Restart Server") { restart() }
                     .disabled(!isRunning)
             } footer: {
                 Text(restartHint)
@@ -163,9 +178,7 @@ struct SettingsView: View {
             } header: {
                 Text("Chat")
             } footer: {
-                Text(
-                    "Max Think needs a context of at least 393,216 — you'll be asked to raise it. "
-                        + "Coding agents set their own level; this only affects the built-in chat.")
+                Text(thinkingHint)
             }
 
             Section {
@@ -225,13 +238,22 @@ struct SettingsView: View {
         .onDisappear { WindowChrome.windowClosed() }
     }
 
-    private func restart() {
+    private func restart(overrideWiredLimitGate: Bool = false) {
         let host = app.normalizeHostForLaunch()
-        supervisor.restart(
+        let result = supervisor.restart(
             variant: app.selectedVariant, flashQuant: app.selectedFlashQuant,
             ctx: app.effectiveCtx(ramGiB: ram),
             host: host, port: app.port, power: app.power,
             sessions: app.concurrentSessions,
-            kvDiskDir: app.kvDiskCache ? supervisor.kvDiskCacheURL : nil)
+            kvDiskDir: app.kvDiskCache ? supervisor.kvDiskCacheURL : nil,
+            overrideWiredLimitGate: overrideWiredLimitGate)
+        if case let .rejected(feasibility) = result {
+            RestartRejectionAlert.show(
+                feasibility,
+                contextSentence: "The current server is still running."
+            ) {
+                restart(overrideWiredLimitGate: true)
+            }
+        }
     }
 }
