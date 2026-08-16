@@ -43,6 +43,12 @@ What it is **not**:
 - No model search or registry browsing.
 - No embedded inference — all inference is delegated to `ds4-server`.
 
+## Quick Install via Homebrew
+
+```bash
+brew install --cask ds4-control
+```
+
 ## Dev quick start
 
 [antirez/ds4](https://github.com/antirez/ds4) is vendored as a git submodule at `external/ds4`:
