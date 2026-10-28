@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "mimosa-finding-history/v1",
+  "runId": "20261028T161026695Z-77195-9532d4aa99d6",
+  "runStatus": "inconclusive",
+  "errors": [
+    "bash-discovery:external/ds4/tests/test_cuda_tp_link.c: bash_discovery_truncated: changed-file discovery exceeded 80 files",
+    "candidate-select:external/ds4/ds4_gpu_tp.h: candidate_limit_exceeded: 60 changed reviewable file(s) were not scanned because the limit is 20",
+    "baseline-read:external/ds4/download_model.sh: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4.c: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4.h: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_agent.c: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_bench.c: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_cli.c: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_deepseek41_dspark.h: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_deepseek41_gpu.h: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_distributed.c: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_distributed.h: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_engram.c: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_engram.h: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_eval.c: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_eval_cases.c: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_eval_cases.h: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_gpu.h: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_gpu_args.c: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_gpu_args.h: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_gpu_copy.h: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:external/ds4/ds4_gpu_mgpu.h: baseline_snapshot_unreadable: file is missing from task baseline",
+    "scan:external/ds4/ds4.c: deterministic_scanner_unavailable: deterministic scanner unavailable",
+    "scan:external/ds4/ds4.c: file_skipped: 文件过大（3857KB），已跳过未扫描"
+  ],
+  "target": ".",
+  "revision": "daae74ee9f8b3267bbb30529164b441a7fdf0ab4",
+  "diffHash": "9057693b79b281e0443b94afe15090bd7b665127384c78fa3561e800ea65217b",
+  "rulesVersion": "unavailable",
+  "recordedAt": "2026-10-28T16:10:26.695Z",
+  "timing": {
+    "startedAt": "2026-10-28T16:10:25.710Z",
+    "completedAt": "2026-10-28T16:10:26.695Z",
+    "durationMs": 985
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "modelCalls": 0,
+    "measurement": "known-zero"
+  },
+  "findings": {
+    "total": 7,
+    "bySeverity": {
+      "high": 7
+    },
+    "byStatus": {
+      "blocked": 3,
+      "candidate": 4
+    }
+  },
+  "coverage": {
+    "status": "partial",
+    "reasonCounts": {
+      "bash_discovery_truncated": 1,
+      "candidate_limit_exceeded": 1,
+      "baseline_snapshot_unreadable": 20,
+      "deterministic_scanner_unavailable": 1,
+      "file_skipped": 1,
+      "project_check_failed": 24
+    }
+  },
+  "evidenceBoundary": "static_only",
+  "immutableReport": ".mimosa/reports/task-review-session_549c1606df3a4a755114cecf3acc990d-20261028T161026695Z-77195-9532d4aa99d6.json"
+}

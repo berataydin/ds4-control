@@ -69,6 +69,10 @@ final class SupervisorService: ObservableObject {
     /// Bumped whenever the on-disk gguf set changes via cleanup, so SwiftUI views that read
     /// `isFlashQuantDownloaded` (the Settings picker) re-render.
     @Published private(set) var ggufStoreVersion = 0
+    /// Re-render hook for the same views after an external on-disk change — notably a
+    /// Settings downloads-folder switch, which moves every installed/partial check to a
+    /// different directory without touching files.
+    func noteGGUFStoreChanged() { ggufStoreVersion += 1 }
 
     let ds4Dir: URL
     let runner: ProcessRunner
@@ -110,8 +114,11 @@ final class SupervisorService: ObservableObject {
     typealias ListeningPIDLookup = @Sendable (Int) -> ListeningPIDResult
     private let listeningPIDLookup: ListeningPIDLookup
 
-    /// Where downloaded gguf models live when `DS4_GGUF_DIR` isn't set. Production passes
-    /// the writable App Support dir; tests pass nil so it falls back to `ds4Dir/gguf`.
+    /// Where downloaded gguf models live. Resolution order: the `DS4_GGUF_DIR` env
+    /// override (dev), then the user's Settings ▸ Downloads folder choice (nil in tests),
+    /// then the injected base (production: App Support/gguf; tests: a fixture dir), then
+    /// `ds4Dir/gguf`. Re-read on every call so a Settings change applies immediately.
+    private let ggufPreferredDir: (() -> URL?)?
     private let ggufBaseOverride: URL?
     /// Parent directory for generation-specific KV caches. Injectable so migration tests
     /// never inspect or remove the developer's real App Support cache.
@@ -149,6 +156,7 @@ final class SupervisorService: ObservableObject {
     init(
         ds4Dir: URL, runner: ProcessRunner, serverProbe: ((Int) async -> Data?)? = nil,
         ggufBaseURL: URL? = nil, cacheBaseURL: URL? = nil,
+        ggufPreferredDir: (() -> URL?)? = nil,
         downloadRunner: ProcessRunner? = nil, fetchFile: FetchFile? = nil, fetchPrefix: FetchPrefix? = nil,
         wiredLimitGate: WiredLimitGate? = nil, ownedStopWatchdogDelay: TimeInterval = 35,
         startupTimeout: TimeInterval = 600,
@@ -158,6 +166,7 @@ final class SupervisorService: ObservableObject {
         self.runner = runner
         self.serverProbe = serverProbe ?? SupervisorService.defaultServerProbe
         self.ggufBaseOverride = ggufBaseURL
+        self.ggufPreferredDir = ggufPreferredDir
         self.cacheBaseOverride = cacheBaseURL
         self.downloadRunner = downloadRunner ?? RealProcessRunner()
         self.wiredLimitGate = wiredLimitGate ?? Self.defaultWiredLimitGate
@@ -198,11 +207,31 @@ final class SupervisorService: ObservableObject {
     // nonisolated deinit can't touch these MainActor-isolated, non-Sendable Timers).
 
     // MARK: - Path resolution
+    /// The active downloads dir. `DS4_GGUF_DIR` (dev override) wins over the user's
+    /// Settings choice; the injected base is the default. Re-resolved on every call so a
+    /// Settings folder change (or remounting a custom volume) applies without a restart.
     private func ggufBaseDir() -> URL {
         if let env = ProcessInfo.processInfo.environment["DS4_GGUF_DIR"], !env.isEmpty {
             return URL(fileURLWithPath: env)
         }
+        if let preferred = ggufPreferredDir?() { return preferred }
         return ggufBaseOverride ?? ds4Dir.appendingPathComponent("gguf")
+    }
+    /// The pre-customization downloads location (the injected base — App Support/gguf in
+    /// production). Returned only when it differs from the active dir, so models already
+    /// downloaded there stay usable and reclaimable after the user switches folders.
+    private func legacyGGUFBaseDir() -> URL? {
+        let fallback = ggufBaseOverride ?? ds4Dir.appendingPathComponent("gguf")
+        let active = ggufBaseDir()
+        return fallback == active ? nil : fallback
+    }
+    /// Dirs whose on-disk artifacts belong to this quant: the active downloads dir first,
+    /// then the legacy location when a custom folder is configured. Reads (installed checks)
+    /// consult them in order; cleanups delete from both.
+    private func ggufSearchDirs() -> [URL] {
+        let active = ggufBaseDir()
+        if let legacy = legacyGGUFBaseDir() { return [active, legacy] }
+        return [active]
     }
     private func cacheBaseDir() -> URL { cacheBaseOverride ?? ds4AppSupportDir() }
     /// Memory-related launch flags. V4.1 always forces full GPU power duty
@@ -228,6 +257,19 @@ final class SupervisorService: ObservableObject {
 
     private func ggufURL(for selection: QuantSelection) -> URL {
         ggufBaseDir().appendingPathComponent(selection.quant.ggufFilename)
+    }
+    /// Where the quant's final GGUF actually lives: the active downloads dir first, then
+    /// the legacy location (models downloaded before the folder was customized). Falls
+    /// back to the active-dir URL — also the not-found error's filename — when neither
+    /// has the file.
+    private func existingModelFileURL(for selection: QuantSelection) -> URL {
+        let active = ggufURL(for: selection)
+        if FileManager.default.fileExists(atPath: active.path) { return active }
+        if let legacy = legacyGGUFBaseDir() {
+            let legacyURL = legacy.appendingPathComponent(selection.quant.ggufFilename)
+            if FileManager.default.fileExists(atPath: legacyURL.path) { return legacyURL }
+        }
+        return active
     }
     private func validateDs4Dir() -> ServerError? {
         for f in ["ds4-server", "download_model.sh"] {
@@ -283,7 +325,7 @@ final class SupervisorService: ObservableObject {
         case .standard, .wiredLimitTooLow:
             break
         }
-        let gguf = ggufURL(for: selection)
+        let gguf = existingModelFileURL(for: selection)
         guard FileManager.default.fileExists(atPath: gguf.path),
             selection.variant != .flash41 || isDownloaded(selection)
         else {
@@ -729,6 +771,8 @@ final class SupervisorService: ObservableObject {
             pct: 0, file: firstPending?.filename ?? finalName, receivedBytes: 0,
             totalBytes: q.downloadBytes)
         state = .downloading
+        // Resuming the paused selection: the pause record (and its snapshot) is obsolete.
+        if pausedDownloadSelection == selection { clearPausedDownload() }
         lastDownloadSample = nil
         activeDownloadSelection = selection
         preexistingFinalOnDownloadStart =
@@ -899,6 +943,96 @@ final class SupervisorService: ObservableObject {
         download(selection: selection, highPerformance: highPerformance)
     }
 
+    /// The selection whose download was paused this session (nil when none), with the last
+    /// progress snapshot for the Resume affordance. Pause is session-scoped: quitting keeps
+    /// the partials and the next launch's auto-resume picks them up as usual.
+    @Published private(set) var pausedDownloadSelection: QuantSelection?
+    @Published private(set) var pausedDownloadSnapshot: DownloadProgress?
+    /// `preexistingFinalOnDownloadStart` captured at pause, so a later discard of the paused
+    /// download preserves a pre-existing artifact exactly like an in-flight Cancel would.
+    private var pausedPreexistingFinal = false
+
+    /// The paused progress snapshot when this exact selection is the paused one — drives
+    /// the model row's Resume button and its "paused at N%" caption.
+    func pausedDownloadInfo(for selection: QuantSelection) -> DownloadProgress? {
+        guard state == .idle, pausedDownloadSelection == selection else { return nil }
+        return pausedDownloadSnapshot
+    }
+
+    /// Pause the in-flight download: cancel its tasks but KEEP every durable partial (the
+    /// `.part` + its bitmap sidecar, or shard assembly checkpoints), record the paused
+    /// selection, and return to idle. Resume is a plain `download(selection:)` again — the
+    /// downloader re-reads the bitmap and refetches only the chunks it lacks.
+    func pauseDownload() {
+        guard state == .downloading else { return }
+        if activeDownloadSelection?.quant.assemblyFormat == .ggufShards, let task = downloadTask {
+            trackShardDrain(task, generation: downloadGeneration)
+        }
+        pausedDownloadSelection = activeDownloadSelection
+        pausedDownloadSnapshot = download
+        pausedPreexistingFinal = preexistingFinalOnDownloadStart
+        downloadGeneration += 1
+        downloadTask?.cancel()
+        downloadTask = nil
+        // Deliberately NOT deleting partials — that is Cancel's job. Pause keeps them so
+        // Resume continues from the on-disk bitmap instead of restarting from zero.
+        downloadProcessLive = false
+        activeDownloadSelection = nil
+        preexistingFinalOnDownloadStart = false
+        lastDownloadSample = nil
+        download = nil
+        state = .idle
+    }
+
+    /// Discard a paused download's partials and forget the pause. Same artifact policy as
+    /// an in-flight Cancel: single-file transports (and a final this session renamed into
+    /// place) die; verified shard checkpoints stay reclaimable via Settings cleanup.
+    func discardPausedDownload() {
+        guard state == .idle, let selection = pausedDownloadSelection else { return }
+        discardTransportArtifacts(selection: selection, preexistingFinal: pausedPreexistingFinal)
+        clearPausedDownload()
+    }
+
+    private func clearPausedDownload() {
+        pausedDownloadSelection = nil
+        pausedDownloadSnapshot = nil
+        pausedPreexistingFinal = false
+    }
+
+    /// Delete a download's transport partials (`.part` + `.part.dl` sidecar) and, for a
+    /// single-part quant whose final this session's own fetch renamed into place, that
+    /// final and its marker. `preexistingFinal` protects an artifact that predates the
+    /// download attempt (a marker-less final being re-verified). Shared by in-flight
+    /// Cancel and discarding a paused download; shard-format selections keep their
+    /// durable checkpoints (a verified prefix / `.assembling` state) for Resume.
+    private func discardTransportArtifacts(selection: QuantSelection, preexistingFinal: Bool) {
+        guard selection.quant.assemblyFormat == .singleFile else { return }
+        let base = ggufBaseDir()
+        let parts = selection.quant.downloadParts
+        for part in parts {
+            // ORDER MATTERS: the transport `.part` must be unlinked BEFORE the final. The
+            // removals are not atomic as a group, and HFDownloader's rename runs on a
+            // concurrent thread — a rename landing between the two removals would unlink
+            // the source only after it had already become the final, leaving an unverified
+            // single-part gguf on disk (the exact leak cancel exists to prevent). With
+            // `.part` gone first, any rename either preceded it (the final removal below
+            // catches the result) or fails with ENOENT.
+            try? FileManager.default.removeItem(at: base.appendingPathComponent(part.filename + ".part"))
+            try? FileManager.default.removeItem(at: base.appendingPathComponent(part.filename + ".part.dl"))
+            // A single-part quant's transport name IS its final gguf name. Remove that
+            // final ONLY when this session's own fetch renamed it into place:
+            // preexisting artifacts must survive so a later re-verify can run. A preserved
+            // final carries no `.verified` marker, so it never counts as downloaded, and
+            // the marker dies with a removed final (an orphan marker must never certify a
+            // later refetch of the same path).
+            if parts.count == 1, !preexistingFinal {
+                try? FileManager.default.removeItem(at: base.appendingPathComponent(part.filename))
+                try? FileManager.default.removeItem(
+                    at: base.appendingPathComponent(part.filename + ".verified"))
+            }
+        }
+    }
+
     /// Cancel an in-progress download and return to idle without restarting. Bumping the generation
     /// makes the cancelled task's completion callback stale, so it can't flip state to error.
     func cancelDownload() {
@@ -913,39 +1047,10 @@ final class SupervisorService: ObservableObject {
         // `.part` AND its `.part.dl` bitmap sidecar so the next launch's resume check doesn't
         // pick it back up. Quitting mid-download keeps them, so a relaunch resumes from the
         // bitmap. A verified 480 GiB prefix already renamed to `.assembling` is kept.
-        let base = ggufBaseDir()
-        if let selection = activeDownloadSelection, selection.quant.assemblyFormat == .singleFile {
-            let parts = selection.quant.downloadParts
-            for part in parts {
-                // ORDER MATTERS: the transport `.part` must be unlinked BEFORE the final. The
-                // removals are not atomic as a group, and HFDownloader's rename runs on a
-                // concurrent thread — a rename landing between the two removals would unlink
-                // the source only after it had already become the final, leaving an unverified
-                // single-part gguf on disk (the exact leak cancel exists to prevent). With
-                // `.part` gone first, any rename either preceded it (the final removal below
-                // catches the result) or fails with ENOENT.
-                try? FileManager.default.removeItem(at: base.appendingPathComponent(part.filename + ".part"))
-                try? FileManager.default.removeItem(at: base.appendingPathComponent(part.filename + ".part.dl"))
-                // A single-part quant's transport name IS its final gguf name. Remove that
-                // final ONLY when this session's own fetch renamed it into place
-                // (preexistingFinalOnDownloadStart == false): cancel discards bytes this
-                // session fetched, but must never destroy a pre-existing artifact — resuming
-                // a marker-less final only re-runs verification (minutes for V4.1), and
-                // cancelling that hash must leave the file for a later re-verify. A preserved
-                // final carries no `.verified` marker, so it never counts as downloaded.
-                // Never fires for a verified file: cancel is gated to .downloading, and a
-                // verified final only exists once completeDownload has moved state to .idle.
-                // Two-part quants are excluded: their final is produced by the joiner's atomic
-                // assembly, and cancel keeps the verified prefix (.assembling + part2) for resume.
-                if parts.count == 1, !preexistingFinalOnDownloadStart {
-                    try? FileManager.default.removeItem(at: base.appendingPathComponent(part.filename))
-                    // The marker dies with the final: an orphan marker must never certify a
-                    // later refetch of the same path.
-                    try? FileManager.default.removeItem(
-                        at: base.appendingPathComponent(part.filename + ".verified"))
-                }
-            }
-        } else if activeDownloadSelection == nil, let f = download?.file {
+        if let selection = activeDownloadSelection {
+            discardTransportArtifacts(selection: selection, preexistingFinal: preexistingFinalOnDownloadStart)
+        } else if let f = download?.file {
+            let base = ggufBaseDir()
             try? FileManager.default.removeItem(at: base.appendingPathComponent(f + ".part"))
             try? FileManager.default.removeItem(at: base.appendingPathComponent(f + ".part.dl"))
         }
@@ -954,6 +1059,7 @@ final class SupervisorService: ObservableObject {
         preexistingFinalOnDownloadStart = false
         lastDownloadSample = nil
         download = nil
+        clearPausedDownload()
         state = .idle
     }
 
@@ -983,9 +1089,15 @@ final class SupervisorService: ObservableObject {
     /// True when the selected variant's gguf exists on disk AND carries the durable marker a
     /// successful verification writes. A renamed-but-unverified final (the app quit mid-hash)
     /// is deliberately NOT downloaded: the model row offers Download — which re-verifies in
-    /// place without refetching — rather than Start.
+    /// place without refetching — rather than Start. The active downloads dir is checked
+    /// first, then the legacy location, so models downloaded before a folder switch keep
+    /// reading as installed.
     func isDownloaded(_ selection: QuantSelection) -> Bool {
-        let gguf = ggufURL(for: selection)
+        for dir in ggufSearchDirs() where isVerifiedDownload(selection, in: dir) { return true }
+        return false
+    }
+    private func isVerifiedDownload(_ selection: QuantSelection, in dir: URL) -> Bool {
+        let gguf = dir.appendingPathComponent(selection.quant.ggufFilename)
         let marker = URL(fileURLWithPath: gguf.path + ".verified")
         guard FileManager.default.fileExists(atPath: gguf.path),
             FileManager.default.fileExists(atPath: marker.path)
@@ -993,6 +1105,14 @@ final class SupervisorService: ObservableObject {
         guard let sha = selection.quant.sha256 else { return true }
         return fileSize(gguf) == Int64(selection.quant.ggufBytes)
             && (try? String(contentsOf: marker, encoding: .utf8)) == sha
+    }
+    /// True when the active downloads dir holds recoverable state for this selection — a
+    /// paused download's partial, artifacts a prior session stranded, or a marker-less
+    /// final awaiting (re)verification — so the model row offers Resume over Download.
+    func hasPartialDownloadForSelection(_ selection: QuantSelection) -> Bool {
+        let base = ggufBaseDir()
+        return FileManager.default.fileExists(atPath: base.appendingPathComponent(selection.quant.ggufFilename).path)
+            || hasPartialDownload(ggufDir: base, quant: selection.quant)
     }
 
     // MARK: - Flash quant store (Settings: download markers + cleanup)
@@ -1003,49 +1123,55 @@ final class SupervisorService: ObservableObject {
     func isFlash41QuantDownloaded(_ q: Flash41Quant) -> Bool {
         isDownloaded(.flash41(q))
     }
-    /// On-disk removable artifact files for a Flash quant: the final GGUF when downloaded,
-    /// otherwise the sparse `.part` + `.part.dl` bitmap sidecar a failed download or an app
-    /// quit mid-download stranded on disk — plus an unverified final (renamed but never
-    /// digest-checked). Drives the Settings cleanup counts, which must cover partial
-    /// artifacts, not just completed finals.
+    /// On-disk removable artifact files for a Flash quant across every downloads dir: the
+    /// final GGUF when present, otherwise the sparse `.part` + `.part.dl` bitmap sidecar a
+    /// failed download or an app quit mid-download stranded on disk — plus an unverified
+    /// final (renamed but never digest-checked). Drives the Settings cleanup counts, which
+    /// must cover partial artifacts, not just completed finals.
     func flashArtifactURLs(_ q: FlashQuant) -> [URL] {
-        let base = ggufBaseDir()
         let fm = FileManager.default
-        let final = base.appendingPathComponent(q.quant.ggufFilename)
-        if isFlashQuantDownloaded(q) { return [final] }
-        var urls: [URL] = fm.fileExists(atPath: final.path) ? [final] : []
-        urls += [".part", ".part.dl"].map { base.appendingPathComponent(q.quant.ggufFilename + $0) }
-            .filter { fm.fileExists(atPath: $0.path) }
+        var urls: [URL] = []
+        for base in ggufSearchDirs() {
+            let final = base.appendingPathComponent(q.quant.ggufFilename)
+            if fm.fileExists(atPath: final.path) { urls.append(final) }
+            urls += [".part", ".part.dl"].map { base.appendingPathComponent(q.quant.ggufFilename + $0) }
+                .filter { fm.fileExists(atPath: $0.path) }
+        }
         return urls
     }
     /// Bytes reclaimed by deleting a Flash quant's artifacts: the final GGUF's exact on-disk
     /// size when downloaded; otherwise the durable partial bytes — the bitmap-accurate count,
-    /// since the sparse `.part`'s apparent size is meaningless.
+    /// since the sparse `.part`'s apparent size is meaningless — summed across every
+    /// downloads dir (a custom folder may coexist with legacy-location partials).
     func flashArtifactBytes(_ q: FlashQuant) -> Int64 {
         if isFlashQuantDownloaded(q) { return Int64(q.quant.ggufBytes) }
-        return downloadedBytes(ggufDir: ggufBaseDir(), quant: q.quant)
+        return ggufSearchDirs().reduce(Int64(0)) { $0 + downloadedBytes(ggufDir: $1, quant: q.quant) }
     }
     /// True when a Flash quant has stranded downloader artifacts but no final GGUF — the
     /// failed-download / quit-mid-download case that must still enable cleanup.
     func hasFlashPartialDownload(_ q: FlashQuant) -> Bool {
-        !isFlashQuantDownloaded(q) && hasPartialDownload(ggufDir: ggufBaseDir(), quant: q.quant)
+        !isFlashQuantDownloaded(q)
+            && ggufSearchDirs().contains { hasPartialDownload(ggufDir: $0, quant: q.quant) }
     }
     /// V4.1 twin of `flashArtifactURLs`: the final GGUF when downloaded, otherwise every
     /// transport part (with partials/sidecars), any unverified final, and an interrupted
-    /// join's `.assembling` file.
+    /// join's `.assembling` file — across every downloads dir.
     func flash41ArtifactURLs(_ q: Flash41Quant) -> [URL] {
-        let base = ggufBaseDir()
         let fm = FileManager.default
         let quant = q.quant
-        var names = [
-            quant.ggufFilename, quant.ggufFilename + ".verified",
-            quant.ggufFilename + ".assembling", quant.ggufFilename + ".assembling.json",
-            quant.ggufFilename + ".assembling.json.tmp",
-        ]
-        for part in quant.downloadParts {
-            names += [part.filename, part.filename + ".part", part.filename + ".part.dl"]
+        var urls: [URL] = []
+        for base in ggufSearchDirs() {
+            var names = [
+                quant.ggufFilename, quant.ggufFilename + ".verified",
+                quant.ggufFilename + ".assembling", quant.ggufFilename + ".assembling.json",
+                quant.ggufFilename + ".assembling.json.tmp",
+            ]
+            for part in quant.downloadParts {
+                names += [part.filename, part.filename + ".part", part.filename + ".part.dl"]
+            }
+            urls += Set(names).sorted().map { base.appendingPathComponent($0) }
         }
-        return Set(names).sorted().map { base.appendingPathComponent($0) }.filter { fm.fileExists(atPath: $0.path) }
+        return urls.filter { fm.fileExists(atPath: $0.path) }
     }
     /// V4.1 twin of `flashArtifactBytes`: the final's exact on-disk size when verified;
     /// otherwise the durable downloaded bytes (final wins, then per-part progress).
@@ -1058,9 +1184,12 @@ final class SupervisorService: ObservableObject {
         // A marker-less final (an unverified download or join) is itself a cleanup candidate:
         // for multi-part quants the parts were consumed by the join, so the transport checks
         // below see nothing even though the final occupies its full size on disk.
-        let final = ggufBaseDir().appendingPathComponent(q.quant.ggufFilename)
-        if FileManager.default.fileExists(atPath: final.path) { return true }
-        return hasPartialDownload(ggufDir: ggufBaseDir(), quant: q.quant)
+        for base in ggufSearchDirs() {
+            let final = base.appendingPathComponent(q.quant.ggufFilename)
+            if FileManager.default.fileExists(atPath: final.path) { return true }
+            if hasPartialDownload(ggufDir: base, quant: q.quant) { return true }
+        }
+        return false
     }
     /// Delete on-disk Flash quant ggufs other than `keep`. V4 Pro is untouched by construction
     /// (the loop only iterates `FlashQuant`). Gate the call site to idle/error so a loaded or
@@ -1101,9 +1230,17 @@ final class SupervisorService: ObservableObject {
     }
 
     /// Remove every on-disk artifact of a quant: the final GGUF (single file or joined),
-    /// all transport parts and their downloader sidecars, and any interrupted-join file.
+    /// all transport parts and their downloader sidecars, and any interrupted-join file —
+    /// from every downloads dir (active + legacy) so a folder switch never strands
+    /// hundreds of GB outside the app's reach.
     private func removeQuantFiles(_ quant: Quant) -> [String] {
-        let base = ggufBaseDir()
+        var removedAll: [String] = []
+        for base in ggufSearchDirs() {
+            removedAll += removeQuantFiles(quant, in: base)
+        }
+        return removedAll
+    }
+    private func removeQuantFiles(_ quant: Quant, in base: URL) -> [String] {
         guard FileManager.default.fileExists(atPath: base.path) else { return [] }
         let assemblyLock: GGUFShardAssembler.AssemblyLock?
         do {
@@ -1152,7 +1289,14 @@ final class SupervisorService: ObservableObject {
     }
 
     func legacyFlash41StorageURLs() -> [URL] {
-        Flash41LegacyStorage.candidates(ggufDirectory: ggufBaseDir(), cacheDirectory: cacheBaseDir())
+        let cache = cacheBaseDir()
+        var urls: Set<URL> = []
+        // Both the active and any legacy downloads dir can hold old-recipe artifacts; the
+        // cache candidates dedupe through the Set.
+        for dir in ggufSearchDirs() {
+            urls.formUnion(Flash41LegacyStorage.candidates(ggufDirectory: dir, cacheDirectory: cache))
+        }
+        return urls.sorted { $0.path < $1.path }
     }
 
     func legacyFlash41StorageBytes() -> Int64 {
@@ -1170,31 +1314,34 @@ final class SupervisorService: ObservableObject {
         }
         defer { ggufStoreVersion += 1 }
         try Flash41LegacyStorage.remove(
-            candidates: confirmedURLs, ggufDirectory: ggufBaseDir(), cacheDirectory: cacheBaseDir())
+            candidates: confirmedURLs, ggufDirectories: ggufSearchDirs(), cacheDirectory: cacheBaseDir())
     }
 
     // MARK: - Legacy preview storage
     /// Preview GGUFs, their native-downloader sidecars, leftover hf `*.incomplete`
     /// partials, and the shared cache directory used before caches became
-    /// release-specific. Nothing in the app references these.
+    /// release-specific. Nothing in the app references these. Scans every downloads
+    /// dir so preview files left in a pre-customization location stay reclaimable.
     func legacyStorageURLs() -> [URL] {
-        let base = ggufBaseDir()
-        var urls = Quant.legacyPreviewFilenames.flatMap { name in
-            [name, name + ".part", name + ".part.dl"]
-                .map { base.appendingPathComponent($0) }
-                .filter { FileManager.default.fileExists(atPath: $0.path) }
-        }
-        let incompleteDir = base.appendingPathComponent(".cache/huggingface/download")
-        if let items = try? FileManager.default.contentsOfDirectory(
-            at: incompleteDir, includingPropertiesForKeys: nil)
-        {
-            urls.append(
-                contentsOf: items.filter { item in
-                    item.pathExtension == "incomplete"
-                        && Quant.legacyPreviewFilenames.contains { name in
-                            item.lastPathComponent.hasPrefix(name + ".")
-                        }
-                })
+        var urls: [URL] = []
+        for base in ggufSearchDirs() {
+            urls += Quant.legacyPreviewFilenames.flatMap { name in
+                [name, name + ".part", name + ".part.dl"]
+                    .map { base.appendingPathComponent($0) }
+                    .filter { FileManager.default.fileExists(atPath: $0.path) }
+            }
+            let incompleteDir = base.appendingPathComponent(".cache/huggingface/download")
+            if let items = try? FileManager.default.contentsOfDirectory(
+                at: incompleteDir, includingPropertiesForKeys: nil)
+            {
+                urls.append(
+                    contentsOf: items.filter { item in
+                        item.pathExtension == "incomplete"
+                            && Quant.legacyPreviewFilenames.contains { name in
+                                item.lastPathComponent.hasPrefix(name + ".")
+                            }
+                    })
+            }
         }
         let sharedCache = cacheBaseDir().appendingPathComponent("kv", isDirectory: true)
         if FileManager.default.fileExists(atPath: sharedCache.path) { urls.append(sharedCache) }

@@ -334,7 +334,8 @@ struct PopupView: View {
     }
     private var stateLabel: String {
         switch supervisor.state {
-        case .idle: return "Idle"
+        case .idle:
+            return supervisor.pausedDownloadSelection != nil ? "Paused" : "Idle"
         case .downloading: return "Downloading"
         case .starting: return "Starting"
         case .ready:

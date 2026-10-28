@@ -51,8 +51,10 @@ enum Flash41LegacyStorage {
     /// The supervisor rechecks the process/state gate immediately before calling this.
     /// Revalidate each confirmed path and its parent chain before removal; partial failures
     /// are collected rather than hiding a failed path or preventing the rest from finishing.
+    /// `ggufDirectories` carries every downloads dir (active + legacy), so artifacts left in
+    /// a pre-customization location stay eligible after the user switches folders.
     static func remove(
-        candidates confirmedURLs: [URL], ggufDirectory: URL, cacheDirectory: URL,
+        candidates confirmedURLs: [URL], ggufDirectories: [URL], cacheDirectory: URL,
         removeItem: (URL) throws -> Void = { try FileManager.default.removeItem(at: $0) }
     ) throws {
         var failures: [String] = []
@@ -61,12 +63,11 @@ enum Flash41LegacyStorage {
         for candidate in confirmedURLs {
             let url = candidate.standardizedFileURL
             guard seen.insert(url.path).inserted else { continue }
-            guard isEligible(url, ggufDirectory: ggufDirectory, cacheDirectory: cacheDirectory) else {
+            guard let root = eligibleRoot(url, ggufDirectories: ggufDirectories, cacheDirectory: cacheDirectory) else {
                 failures.append("\(url.path): this path is outside the old V4.1 storage list.")
                 continue
             }
             guard let values = attributes(url) else { continue }  // removed since confirmation
-            let root = url.lastPathComponent == oldCacheName ? cacheDirectory : ggufDirectory
             guard hasSafeParent(url, root: root), values[.type] as? FileAttributeType != .typeSymbolicLink else {
                 failures.append("\(url.path): a symbolic link prevents safe cleanup.")
                 continue
@@ -113,13 +114,30 @@ enum Flash41LegacyStorage {
         }
     }
 
-    private static func isEligible(_ url: URL, ggufDirectory: URL, cacheDirectory: URL) -> Bool {
-        let gguf = ggufDirectory.standardizedFileURL
-        let cache = cacheDirectory.standardizedFileURL
-        if url.path == cache.appendingPathComponent(oldCacheName).path { return true }
-        if url.deletingLastPathComponent().path == gguf.path { return artifactNames.contains(url.lastPathComponent) }
-        let hf = gguf.appendingPathComponent(hfDirectory).standardizedFileURL
-        return url.deletingLastPathComponent().path == hf.path && isAssociatedHFArtifact(url.lastPathComponent)
+    /// The root (a downloads dir or the cache dir) an eligible candidate must live under:
+    /// the cache's old `kv-flash-41` by exact path, or an artifact/hf-cache file directly
+    /// inside one of the gguf directories. nil = not eligible anywhere.
+    private static func eligibleRoot(
+        _ url: URL, ggufDirectories: [URL], cacheDirectory: URL
+    ) -> URL? {
+        if url.path == cacheDirectory.standardizedFileURL.appendingPathComponent(oldCacheName).path {
+            return cacheDirectory
+        }
+        for gguf in ggufDirectories {
+            let standardized = gguf.standardizedFileURL
+            if url.deletingLastPathComponent().path == standardized.path,
+                artifactNames.contains(url.lastPathComponent)
+            {
+                return gguf
+            }
+            let hf = standardized.appendingPathComponent(hfDirectory).standardizedFileURL
+            if url.deletingLastPathComponent().path == hf.path,
+                isAssociatedHFArtifact(url.lastPathComponent)
+            {
+                return gguf
+            }
+        }
+        return nil
     }
 
     /// The explicitly configured root may itself live on another disk. All descendants

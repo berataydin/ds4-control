@@ -31,8 +31,24 @@ struct ModelRowView: View {
                 wiredLimitMB: effectiveWiredLimitMB(ramGiB: ramGiB),
                 sessions: app.concurrentSessions)
             actionButton(feas)
+            if let paused = supervisor.pausedDownloadInfo(for: app.quantSelection) {
+                pausedNote(paused)
+            }
             feasibilityNote(feas)
         }
+    }
+
+    /// Caption shown while this selection's download is paused: how far it got, and what
+    /// each button does with the partial.
+    private func pausedNote(_ paused: DownloadProgress) -> some View {
+        Text(
+            "Paused at \(String(format: "%.0f%%", paused.pct)) — Resume continues from where "
+                + "it left off; Cancel discards the partial download."
+        )
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder private func actionButton(_ feas: Feasibility) -> some View {
@@ -51,14 +67,11 @@ struct ModelRowView: View {
         case .ready, .starting:
             Button("Stop") { supervisor.stop() }.tint(.red).frame(maxWidth: .infinity)
         case .downloading:
-            // Retry restarts the download (escape hatch from a stalled bar); Cancel stops it.
+            // Pause stops the fetch but keeps the durable partials (bitmap sidecar / shard
+            // checkpoints), so Resume continues from where it stopped; Cancel discards them.
             HStack {
-                Button("Retry download") {
-                    supervisor.retryDownload(
-                        selection: app.quantSelection,
-                        highPerformance: app.highPerformanceDownload)
-                }
-                .tint(.orange).frame(maxWidth: .infinity).disabled(blocked)
+                Button("Pause") { supervisor.pauseDownload() }
+                    .frame(maxWidth: .infinity).disabled(blocked)
                 Button("Cancel", role: .destructive) { supervisor.cancelDownload() }
                     .frame(maxWidth: .infinity)
             }
@@ -74,7 +87,23 @@ struct ModelRowView: View {
             }
             .tint(.orange).frame(maxWidth: .infinity).disabled(blocked)
         default:
-            if !downloaded {
+            // A paused download (or a partial a prior session left) resumes from the on-disk
+            // bitmap instead of restarting — the button says so.
+            let paused = supervisor.pausedDownloadInfo(for: app.quantSelection)
+            if !downloaded, paused != nil || supervisor.hasPartialDownloadForSelection(app.quantSelection) {
+                HStack {
+                    Button("Resume download") {
+                        supervisor.download(
+                            selection: app.quantSelection,
+                            highPerformance: app.highPerformanceDownload)
+                    }
+                    .frame(maxWidth: .infinity).disabled(blocked)
+                    if paused != nil {
+                        Button("Cancel", role: .destructive) { supervisor.discardPausedDownload() }
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+            } else if !downloaded {
                 Button("Download \(app.selectedVariant.displayName)") {
                     supervisor.download(
                         selection: app.quantSelection,

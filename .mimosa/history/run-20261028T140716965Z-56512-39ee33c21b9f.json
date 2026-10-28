@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "mimosa-finding-history/v1",
+  "runId": "20261028T140716965Z-56512-39ee33c21b9f",
+  "runStatus": "inconclusive",
+  "errors": [
+    "bash-discovery:.build/checkouts/swift-cmark/src/include/html.h: bash_discovery_truncated: changed-file discovery exceeded 80 files",
+    "candidate-select:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/VectorBoolBenchmarks.cpp: candidate_limit_exceeded: 60 changed reviewable file(s) were not scanned because the limit is 20",
+    "baseline-read:.build/checkouts/swift-collections/Utils/generate-docs.sh: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Utils/run-benchmarks.sh: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Utils/run-full-tests.sh: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Utils/shuffle-sources.sh: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Utils/Debugger/formatter_bytecode.py: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Utils/Debugger/generate_formatters.sh: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Utils/Debugger/test_formatters.py: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Utils/Debugger/Formatters/RigidArray.py: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Documentation/Announcement-benchmarks/generate-results.sh: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Benchmarks/Sources/RustBenchmarks/VecDequeBenchmarks.rs: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/CustomHash.h: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/DequeBenchmarks.cpp: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Hashing.cpp: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/MapBenchmarks.cpp: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/PriorityQueueBenchmarks.cpp: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedMapBenchmarks.cpp: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedSetBenchmarks.cpp: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Utils.cpp: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/VectorBenchmarks.cpp: baseline_snapshot_unreadable: file is missing from task baseline",
+    "scan:.build/checkouts/swift-collections/Utils/generate-docs.sh: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Utils/run-benchmarks.sh: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Utils/run-full-tests.sh: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Utils/shuffle-sources.sh: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Utils/Debugger/formatter_bytecode.py: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Utils/Debugger/generate_formatters.sh: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Utils/Debugger/test_formatters.py: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Utils/Debugger/Formatters/RigidArray.py: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Documentation/Announcement-benchmarks/generate-results.sh: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Benchmarks/Sources/RustBenchmarks/VecDequeBenchmarks.rs: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/CustomHash.h: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/DequeBenchmarks.cpp: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Hashing.cpp: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/MapBenchmarks.cpp: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/PriorityQueueBenchmarks.cpp: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedMapBenchmarks.cpp: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedSetBenchmarks.cpp: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Utils.cpp: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "scan:.build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/VectorBenchmarks.cpp: scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+    "agent-check:.: stop_budget_exhausted: focused agent configuration check was not run before the gate budget"
+  ],
+  "target": ".",
+  "revision": "daae74ee9f8b3267bbb30529164b441a7fdf0ab4",
+  "diffHash": "45ab099825c302a014c694f6b1240f4ab78af09318d578ecd4d8f9fa6f12485e",
+  "rulesVersion": "unavailable",
+  "recordedAt": "2026-10-28T14:07:16.965Z",
+  "timing": {
+    "startedAt": "2026-10-28T14:07:14.718Z",
+    "completedAt": "2026-10-28T14:07:16.965Z",
+    "durationMs": 2247
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "modelCalls": 0,
+    "measurement": "known-zero"
+  },
+  "findings": {
+    "total": 0,
+    "bySeverity": {},
+    "byStatus": {}
+  },
+  "coverage": {
+    "status": "partial",
+    "reasonCounts": {
+      "bash_discovery_truncated": 1,
+      "candidate_limit_exceeded": 1,
+      "baseline_snapshot_unreadable": 19,
+      "scanner_failed": 19,
+      "stop_budget_exhausted": 1,
+      "project_check_failed": 41
+    }
+  },
+  "evidenceBoundary": "static_only",
+  "immutableReport": ".mimosa/reports/task-review-session_549c1606df3a4a755114cecf3acc990d-20261028T140716965Z-56512-39ee33c21b9f.json"
+}

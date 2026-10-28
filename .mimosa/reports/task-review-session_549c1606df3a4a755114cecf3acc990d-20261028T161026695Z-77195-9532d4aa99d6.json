@@ -1,0 +1,1153 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20261028T161026695Z-77195-9532d4aa99d6",
+  "run_status": "inconclusive",
+  "errors": [
+    {
+      "stage": "bash-discovery",
+      "target": "external/ds4/tests/test_cuda_tp_link.c",
+      "reason": "bash_discovery_truncated: changed-file discovery exceeded 80 files"
+    },
+    {
+      "stage": "candidate-select",
+      "target": "external/ds4/ds4_gpu_tp.h",
+      "reason": "candidate_limit_exceeded: 60 changed reviewable file(s) were not scanned because the limit is 20"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/download_model.sh",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4.c",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4.h",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_agent.c",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_bench.c",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_cli.c",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_deepseek41_dspark.h",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_deepseek41_gpu.h",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_distributed.c",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_distributed.h",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_engram.c",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_engram.h",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_eval.c",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_eval_cases.c",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_eval_cases.h",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_gpu.h",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_gpu_args.c",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_gpu_args.h",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_gpu_copy.h",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": "external/ds4/ds4_gpu_mgpu.h",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "scan",
+      "target": "external/ds4/ds4.c",
+      "reason": "deterministic_scanner_unavailable: deterministic scanner unavailable"
+    },
+    {
+      "stage": "scan",
+      "target": "external/ds4/ds4.c",
+      "reason": "file_skipped: 文件过大（3857KB），已跳过未扫描"
+    }
+  ],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "partial",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 137,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 0
+    },
+    "change_tracking": {
+      "touched_observed": 0,
+      "touched_retained": 0,
+      "truncated": false,
+      "bash_mutation": true,
+      "bash_discovered": 80,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": true
+    },
+    "candidates": {
+      "eligible_files": 80,
+      "selected_files": 20,
+      "limit": 20,
+      "truncated": true
+    },
+    "scanning": {
+      "required_files": 20,
+      "scanned_files": 19,
+      "skipped_files": 1,
+      "failed_files": 0,
+      "project_checks_required": 0,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 8,
+      "detailed_findings": 3,
+      "detail_limit": 3,
+      "truncated": true
+    },
+    "reason_counts": {
+      "bash_discovery_truncated": 1,
+      "candidate_limit_exceeded": 1,
+      "baseline_snapshot_unreadable": 20,
+      "deterministic_scanner_unavailable": 1,
+      "file_skipped": 1,
+      "project_check_failed": 24
+    },
+    "reasons": [
+      {
+        "code": "bash_discovery_truncated",
+        "stage": "bash-discovery",
+        "target": "external/ds4/tests/test_cuda_tp_link.c",
+        "detail": "changed-file discovery exceeded 80 files",
+        "affects_completion": true
+      },
+      {
+        "code": "candidate_limit_exceeded",
+        "stage": "candidate-select",
+        "target": "external/ds4/ds4_gpu_tp.h",
+        "detail": "60 changed reviewable file(s) were not scanned because the limit is 20",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/download_model.sh",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4.c",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4.h",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_agent.c",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_bench.c",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_cli.c",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_deepseek41_dspark.h",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_deepseek41_gpu.h",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_distributed.c",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_distributed.h",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_engram.c",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_engram.h",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_eval.c",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_eval_cases.c",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_eval_cases.h",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_gpu.h",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_gpu_args.c",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_gpu_args.h",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_gpu_copy.h",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_gpu_mgpu.h",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "deterministic_scanner_unavailable",
+        "stage": "scan",
+        "target": "external/ds4/ds4.c",
+        "detail": "deterministic scanner unavailable",
+        "affects_completion": true
+      },
+      {
+        "code": "file_skipped",
+        "stage": "scan",
+        "target": "external/ds4/ds4.c",
+        "detail": "文件过大（3857KB），已跳过未扫描",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "bash-discovery",
+        "target": "external/ds4/tests/test_cuda_tp_link.c",
+        "detail": "bash_discovery_truncated: changed-file discovery exceeded 80 files",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "candidate-select",
+        "target": "external/ds4/ds4_gpu_tp.h",
+        "detail": "candidate_limit_exceeded: 60 changed reviewable file(s) were not scanned because the limit is 20",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/download_model.sh",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4.c",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4.h",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_agent.c",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_bench.c",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_cli.c",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_deepseek41_dspark.h",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_deepseek41_gpu.h",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_distributed.c",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_distributed.h",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_engram.c",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_engram.h",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_eval.c",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_eval_cases.c",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_eval_cases.h",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_gpu.h",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_gpu_args.c",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_gpu_args.h",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_gpu_copy.h",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "external/ds4/ds4_gpu_mgpu.h",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "external/ds4/ds4.c",
+        "detail": "deterministic_scanner_unavailable: deterministic scanner unavailable",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": "external/ds4/ds4.c",
+        "detail": "file_skipped: 文件过大（3857KB），已跳过未扫描",
+        "affects_completion": true
+      }
+    ],
+    "reasons_truncated": false
+  },
+  "generated_at": "2026-10-28T16:10:26.695Z",
+  "session_id": "session_549c1606df3a4a755114cecf3acc990d",
+  "target": ".",
+  "revision": "daae74ee9f8b3267bbb30529164b441a7fdf0ab4",
+  "rules_version": "unavailable",
+  "diff_hash": "9057693b79b281e0443b94afe15090bd7b665127384c78fa3561e800ea65217b",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 20,
+    "changed_files": [
+      {
+        "file": "external/ds4/download_model.sh",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 821
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "dbef154ebbfc4fa089757b8c5298784dec68209a16dee88ec7acc7fc0e11043a"
+      },
+      {
+        "file": "external/ds4/ds4_agent.c",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 13635
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "8b8911d242142641afabe4e0673d260dc1f99762aa8f6988f7b6b4aa206f6e65"
+      },
+      {
+        "file": "external/ds4/ds4_bench.c",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1043
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "f8cc29d57c1e37748273274611b85cad8fd71d1896e0f7c00a109f20ade57ad0"
+      },
+      {
+        "file": "external/ds4/ds4_cli.c",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 2438
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "15fc13922d75891ca8301214ee121e9c8026c9a9095afacd7d19265d0014da9f"
+      },
+      {
+        "file": "external/ds4/ds4_deepseek41_dspark.h",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 471
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "bbee914827bae596f599268d481ed4e55969520b55721e18edcb7233ef84a93e"
+      },
+      {
+        "file": "external/ds4/ds4_deepseek41_gpu.h",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 152
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "ddcbad03a1e8e0245a5cc93124a8c7ba99d8dcc2336ee1c71e32da817514a6f7"
+      },
+      {
+        "file": "external/ds4/ds4_distributed.c",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 8437
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "08ff11e22f2c5791de72cc910d94a6817c7a8310bde4b9cee57379f3be75e0f2"
+      },
+      {
+        "file": "external/ds4/ds4_distributed.h",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 125
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "cf2f60eb677e0eb8aeb3f8d2966636ae075893ae2198beb5e446e483af537f9e"
+      },
+      {
+        "file": "external/ds4/ds4_engram.c",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 473
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "761fa9b55fbf28c6c9e529158042ee185cc037ec028aa3fd17062fdd3380bab8"
+      },
+      {
+        "file": "external/ds4/ds4_engram.h",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 74
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "60ab6f7ca5f7b1867f1536e10f2ff163b052bf1ff110a2b0f8c8eec8ccaeb6ff"
+      },
+      {
+        "file": "external/ds4/ds4_eval_cases.c",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1118
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "9e61d65d5c4db4fd312955b9ce4aed487b0487748b2cb8f91cf6b80b9b5cc764"
+      },
+      {
+        "file": "external/ds4/ds4_eval_cases.h",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 51
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "39bc494d1a95ec095a16a0ed8c52326e6cb67cb11c20613aeccfc2108fa545a2"
+      },
+      {
+        "file": "external/ds4/ds4_eval.c",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 4998
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "4092ce91692e99b6cbb846401f075969362de5d2ea62662513979e18480f9a60"
+      },
+      {
+        "file": "external/ds4/ds4_gpu_args.c",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 230
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "8df9f52e84ce55e55e87e6558d10e7b3380d416cdddbd82c11dd82def1acf890"
+      },
+      {
+        "file": "external/ds4/ds4_gpu_args.h",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 84
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "bb9398a37f0e5f346641aee6d556c4703a41ed2c09442693e48dab591a50d993"
+      },
+      {
+        "file": "external/ds4/ds4_gpu_copy.h",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 24
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "d1004a779cbe4ade8377651e4774f47e892dca1f3a5d9d218d442b3f1e359cad"
+      },
+      {
+        "file": "external/ds4/ds4_gpu_mgpu.h",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 237
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "57d3977180a391d7ac50ab063ba157047578fb0004551bff16a48225a6389f87"
+      },
+      {
+        "file": "external/ds4/ds4_gpu.h",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 3675
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "dfdd640488d01ae1f083f5c8af4d5bbf572e83d90ab5791b717c3c78e6f96af3"
+      },
+      {
+        "file": "external/ds4/ds4.c",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 87539
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "e5b8d5b7a3c6830241f5b88c7d63d8e98116adf9c363e0b73ddda2382dd16dd9"
+      },
+      {
+        "file": "external/ds4/ds4.h",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 675
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "fd34c9485866cbf9b55e6e9cefeb0c19db4023de567d9c2196ddc3b91d6bc0d4"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-10-28T16:10:25.710Z",
+    "completed_at": "2026-10-28T16:10:26.695Z",
+    "duration_ms": 985,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "partial/INCONCLUSIVE",
+    "latencyMs": 985,
+    "peakMemoryBytes": 244236288,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 19,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 8,
+  "rewake_finding_count": 3,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [
+    {
+      "finding_id": "mimosa-39e9fb91a70dcb3c0081b57a",
+      "file": "external/ds4/ds4_agent.c",
+      "line": 1590,
+      "severity": "high",
+      "category": "安全风险",
+      "status": "blocked",
+      "decision": "stop_rewake",
+      "at": "2026-10-28T16:10:26.695Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "3bef8d6d43814f49b6b2cb0153fe2eafacd4ace8ab56dfc04b774bd5c43ac30d",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-4282c4daee03ab4e4aa63676",
+      "file": "external/ds4/ds4_agent.c",
+      "line": 6244,
+      "severity": "high",
+      "category": "安全风险",
+      "status": "blocked",
+      "decision": "stop_rewake",
+      "at": "2026-10-28T16:10:26.695Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "e50c73a240869c9cd526987d5820f49fee4925e03714598a8ebe85956563d40b",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-416a5f2a48ed06fef79eb6e4",
+      "file": "external/ds4/ds4_bench.c",
+      "line": 611,
+      "severity": "high",
+      "category": "安全风险",
+      "status": "blocked",
+      "decision": "stop_rewake",
+      "at": "2026-10-28T16:10:26.695Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "da8fc112ffab8b3f6109dfc36b1be465f9ba8cd40eb270d5668f6bfe1e3cc1c9",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-bcc024da169462f7fc9536b3",
+      "file": "external/ds4/ds4_cli.c",
+      "line": 808,
+      "severity": "high",
+      "category": "安全风险",
+      "status": "candidate",
+      "decision": "observe",
+      "at": "2026-10-28T16:10:26.695Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "e9c94045fb0406d79663ec2a768c6497e47346c3ea385d700cb1310b6fb1f921",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-a1047e4c9a4b22a1987c810d",
+      "file": "external/ds4/ds4_distributed.c",
+      "line": 8144,
+      "severity": "high",
+      "category": "安全风险",
+      "status": "candidate",
+      "decision": "observe",
+      "at": "2026-10-28T16:10:26.695Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "e9c94045fb0406d79663ec2a768c6497e47346c3ea385d700cb1310b6fb1f921",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-514d8a12900d93e98bdb37b0",
+      "file": "external/ds4/ds4_eval.c",
+      "line": 3763,
+      "severity": "high",
+      "category": "安全风险",
+      "status": "candidate",
+      "decision": "observe",
+      "at": "2026-10-28T16:10:26.695Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "c2befe73a5934fee597c4fd0253caa5cc85c1aef0e90b9f351cb4b84e9fad80e",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-d028007e88519094c867f8b8",
+      "file": "external/ds4/ds4_eval.c",
+      "line": 4464,
+      "severity": "high",
+      "category": "安全风险",
+      "status": "candidate",
+      "decision": "observe",
+      "at": "2026-10-28T16:10:26.695Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "da8fc112ffab8b3f6109dfc36b1be465f9ba8cd40eb270d5668f6bfe1e3cc1c9",
+        "runtime_oracle": false
+      }
+    },
+    {
+      "finding_id": "mimosa-d028007e88519094c867f8b8",
+      "file": "external/ds4/ds4_eval.c",
+      "line": 4827,
+      "severity": "high",
+      "category": "安全风险",
+      "status": "candidate",
+      "decision": "observe",
+      "at": "2026-10-28T16:10:26.695Z",
+      "evidence": {
+        "kind": "static_scan",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "source": "semgrep",
+        "evidence_hash": "da8fc112ffab8b3f6109dfc36b1be465f9ba8cd40eb270d5668f6bfe1e3cc1c9",
+        "runtime_oracle": false
+      }
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "mimosa-39e9fb91a70dcb3c0081b57a",
+      "file": "external/ds4/ds4_agent.c",
+      "line": 1590,
+      "end_line": 1590,
+      "severity": "high",
+      "category": "安全风险",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "blocked",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "external/ds4/ds4_agent.c",
+          "line": 1590,
+          "evidence_hash": "3bef8d6d43814f49b6b2cb0153fe2eafacd4ace8ab56dfc04b774bd5c43ac30d",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": true
+    },
+    {
+      "finding_id": "mimosa-4282c4daee03ab4e4aa63676",
+      "file": "external/ds4/ds4_agent.c",
+      "line": 6244,
+      "end_line": 6244,
+      "severity": "high",
+      "category": "安全风险",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "blocked",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "external/ds4/ds4_agent.c",
+          "line": 6244,
+          "evidence_hash": "e50c73a240869c9cd526987d5820f49fee4925e03714598a8ebe85956563d40b",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": true
+    },
+    {
+      "finding_id": "mimosa-416a5f2a48ed06fef79eb6e4",
+      "file": "external/ds4/ds4_bench.c",
+      "line": 611,
+      "end_line": 611,
+      "severity": "high",
+      "category": "安全风险",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "blocked",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "external/ds4/ds4_bench.c",
+          "line": 611,
+          "evidence_hash": "da8fc112ffab8b3f6109dfc36b1be465f9ba8cd40eb270d5668f6bfe1e3cc1c9",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": true
+    },
+    {
+      "finding_id": "mimosa-bcc024da169462f7fc9536b3",
+      "file": "external/ds4/ds4_cli.c",
+      "line": 808,
+      "end_line": 808,
+      "severity": "high",
+      "category": "安全风险",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "candidate",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "external/ds4/ds4_cli.c",
+          "line": 808,
+          "evidence_hash": "e9c94045fb0406d79663ec2a768c6497e47346c3ea385d700cb1310b6fb1f921",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": false
+    },
+    {
+      "finding_id": "mimosa-a1047e4c9a4b22a1987c810d",
+      "file": "external/ds4/ds4_distributed.c",
+      "line": 8144,
+      "end_line": 8144,
+      "severity": "high",
+      "category": "安全风险",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "candidate",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "external/ds4/ds4_distributed.c",
+          "line": 8144,
+          "evidence_hash": "e9c94045fb0406d79663ec2a768c6497e47346c3ea385d700cb1310b6fb1f921",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": false
+    },
+    {
+      "finding_id": "mimosa-514d8a12900d93e98bdb37b0",
+      "file": "external/ds4/ds4_eval.c",
+      "line": 3763,
+      "end_line": 3763,
+      "severity": "high",
+      "category": "安全风险",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "candidate",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "external/ds4/ds4_eval.c",
+          "line": 3763,
+          "evidence_hash": "c2befe73a5934fee597c4fd0253caa5cc85c1aef0e90b9f351cb4b84e9fad80e",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": false
+    },
+    {
+      "finding_id": "mimosa-d028007e88519094c867f8b8",
+      "file": "external/ds4/ds4_eval.c",
+      "line": 4464,
+      "end_line": 4464,
+      "severity": "high",
+      "category": "安全风险",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "candidate",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "external/ds4/ds4_eval.c",
+          "line": 4464,
+          "evidence_hash": "da8fc112ffab8b3f6109dfc36b1be465f9ba8cd40eb270d5668f6bfe1e3cc1c9",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": false
+    },
+    {
+      "finding_id": "mimosa-d028007e88519094c867f8b8",
+      "file": "external/ds4/ds4_eval.c",
+      "line": 4827,
+      "end_line": 4827,
+      "severity": "high",
+      "category": "安全风险",
+      "kind": "semgrep",
+      "advisory": false,
+      "status": "candidate",
+      "evidence_boundary": "candidate",
+      "evidence": [
+        {
+          "kind": "static_scan",
+          "boundary": "candidate",
+          "producer": "deterministic",
+          "source": "semgrep",
+          "file": "external/ds4/ds4_eval.c",
+          "line": 4827,
+          "evidence_hash": "da8fc112ffab8b3f6109dfc36b1be465f9ba8cd40eb270d5668f6bfe1e3cc1c9",
+          "runtime_oracle": false
+        }
+      ],
+      "already_reported_to_agent": false,
+      "selected_for_rewake": false
+    }
+  ],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-session_549c1606df3a4a755114cecf3acc990d-20261028T161026695Z-77195-9532d4aa99d6.json",
+    "latest_report": ".mimosa/reports/task-review-session_549c1606df3a4a755114cecf3acc990d.json",
+    "history_summary": ".mimosa/history/run-20261028T161026695Z-77195-9532d4aa99d6.json"
+  }
+}

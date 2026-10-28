@@ -185,7 +185,7 @@ final class FeasibilityTests: XCTestCase {
             feasibility(
                 ramGiB: 128, variant: .flash, flashQuant: .q2, ctx: Int.max,
                 wiredLimitMB: Int.max, sessions: Int.max),
-            .blocked(reason: "Context size must be between 1 and 1,000,000 tokens."))
+            .blocked(reason: "Context size must be between 1 and \(1_000_000.formatted()) tokens."))
     }
 
     func testWiredLimitGateFlash96() {

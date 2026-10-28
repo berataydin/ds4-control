@@ -205,6 +205,11 @@ struct SettingsView: View {
                 app.refreshLaunchAtLoginStatus()
             }
             .onDisappear { WindowChrome.windowClosed() }
+            .onChange(of: app.downloadsDirectoryPath) { _, _ in
+                // Installed/partial state now resolves against a different directory — make
+                // the pickers and model rows re-read it.
+                supervisor.noteGGUFStoreChanged()
+            }
     }
 
     /// The settings form, sized and measured like the Metal wired-limit help pane: the
@@ -322,6 +327,7 @@ struct SettingsView: View {
             }
 
             Section {
+                downloadsFolderRow
                 Toggle("High performance mode", isOn: $app.highPerformanceDownload)
                 Button("Clean up V4 Flash downloads…") { confirmingCleanup = true }
                     .disabled(flashCleanupQuants.isEmpty || isBusy)
@@ -339,6 +345,7 @@ struct SettingsView: View {
                 Text("Downloads")
             } footer: {
                 VStack(alignment: .leading, spacing: 4) {
+                    Text(downloadsFolderFooter)
                     Text("Downloads use 64 connections instead of 8. Leave off behind CGNAT or strict NAT.")
                     Text(cleanupFooter)
                 }
@@ -409,5 +416,72 @@ struct SettingsView: View {
                 restart(overrideWiredLimitGate: true)
             }
         }
+    }
+
+    // MARK: - Downloads folder
+
+    /// Locked while a download is in flight OR paused: resuming must land in the same
+    /// folder the partial sits in, so the folder can only change with nothing pending.
+    private var downloadsFolderLocked: Bool {
+        supervisor.state == .downloading || supervisor.pausedDownloadSelection != nil
+    }
+
+    /// The active model-downloads folder with a directory picker. Changing it re-points
+    /// downloads and every installed-model check at the chosen folder; models already in
+    /// the previous location stay usable (reads fall back there) and reclaimable here.
+    @ViewBuilder private var downloadsFolderRow: some View {
+        LabeledContent {
+            HStack {
+                Button("Choose…") { chooseDownloadsFolder() }
+                    .disabled(downloadsFolderLocked)
+                if !app.downloadsDirectoryPath.isEmpty {
+                    Button("Reset") {
+                        app.downloadsDirectoryPath = ""
+                    }
+                    .disabled(downloadsFolderLocked)
+                }
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Download folder")
+                Text((app.configuredDownloadsDirectory ?? defaultGGUFDir()).path)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+                if app.downloadsDirectoryUnavailable {
+                    Text("Folder not available — using the default location until it's back.")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private var downloadsFolderFooter: String {
+        let base =
+            "New downloads go to this folder and installed models are detected there. "
+            + "Models already in the previous location remain usable and can be cleaned up here. "
+            + "The disk KV cache stays in Application Support."
+        return downloadsFolderLocked
+            ? base + " Finish or pause the download before changing the folder."
+            : base
+    }
+
+    private func chooseDownloadsFolder() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose Download Folder"
+        panel.message = "Model weights (GGUF) are downloaded here."
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = app.configuredDownloadsDirectory ?? defaultGGUFDir()
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        app.downloadsDirectoryPath = url.path
+        supervisor.noteGGUFStoreChanged()
     }
 }

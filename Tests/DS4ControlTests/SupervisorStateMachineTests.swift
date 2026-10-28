@@ -259,7 +259,7 @@ final class SupervisorStateMachineTests: XCTestCase {
             host: "127.0.0.1", port: 8000, power: nil)
         XCTAssertEqual(
             s.state,
-            .error(.configurationBlocked(reason: "Context size must be between 1 and 1,000,000 tokens.")))
+            .error(.configurationBlocked(reason: "Context size must be between 1 and \(1_000_000.formatted()) tokens.")))
         XCTAssertFalse(r.isRunning)
 
         s.start(

@@ -75,7 +75,7 @@ final class Flash41LegacyStorageTests: XCTestCase {
         let candidates = Flash41LegacyStorage.candidates(ggufDirectory: gguf, cacheDirectory: cache)
         XCTAssertEqual(Set(candidates.map(\.path)), Set(oldURLs.map(\.path)))
         XCTAssertGreaterThan(Flash41LegacyStorage.totalBytes(for: candidates), 0)
-        try Flash41LegacyStorage.remove(candidates: candidates, ggufDirectory: gguf, cacheDirectory: cache)
+        try Flash41LegacyStorage.remove(candidates: candidates, ggufDirectories: [gguf], cacheDirectory: cache)
 
         XCTAssertTrue(oldURLs.allSatisfy { !fm.fileExists(atPath: $0.path) })
         XCTAssertTrue((kept + keptHF + [newCache]).allSatisfy { fm.fileExists(atPath: $0.path) })
@@ -129,7 +129,7 @@ final class Flash41LegacyStorageTests: XCTestCase {
         let fails = try write(oldQ4)
         do {
             try Flash41LegacyStorage.remove(
-                candidates: [succeeds, fails], ggufDirectory: gguf, cacheDirectory: cache
+                candidates: [succeeds, fails], ggufDirectories: [gguf], cacheDirectory: cache
             ) { url in
                 if url == fails { throw CocoaError(.fileWriteNoPermission) }
                 try self.fm.removeItem(at: url)
@@ -142,7 +142,7 @@ final class Flash41LegacyStorageTests: XCTestCase {
         }
         let remaining = Flash41LegacyStorage.candidates(ggufDirectory: gguf, cacheDirectory: cache)
         XCTAssertEqual(remaining, [fails])
-        try Flash41LegacyStorage.remove(candidates: remaining, ggufDirectory: gguf, cacheDirectory: cache)
+        try Flash41LegacyStorage.remove(candidates: remaining, ggufDirectories: [gguf], cacheDirectory: cache)
         XCTAssertFalse(fm.fileExists(atPath: fails.path))
     }
 
@@ -152,7 +152,7 @@ final class Flash41LegacyStorageTests: XCTestCase {
         let link = gguf.appendingPathComponent(oldQ2)
         try fm.createSymbolicLink(at: link, withDestinationURL: valuable)
         XCTAssertThrowsError(
-            try Flash41LegacyStorage.remove(candidates: [link], ggufDirectory: gguf, cacheDirectory: cache))
+            try Flash41LegacyStorage.remove(candidates: [link], ggufDirectories: [gguf], cacheDirectory: cache))
         XCTAssertEqual(Flash41LegacyStorage.totalBytes(for: [link]), 0)
         XCTAssertTrue(fm.fileExists(atPath: valuable.path))
 
@@ -161,7 +161,7 @@ final class Flash41LegacyStorageTests: XCTestCase {
         let traversal = gguf.appendingPathComponent(".cache/huggingface/download/" + oldQ4 + ".lock")
         XCTAssertFalse(Flash41LegacyStorage.candidates(ggufDirectory: gguf, cacheDirectory: cache).contains(traversal))
         XCTAssertThrowsError(
-            try Flash41LegacyStorage.remove(candidates: [traversal], ggufDirectory: gguf, cacheDirectory: cache))
+            try Flash41LegacyStorage.remove(candidates: [traversal], ggufDirectories: [gguf], cacheDirectory: cache))
         XCTAssertTrue(fm.fileExists(atPath: outsideLock.path))
     }
 
@@ -171,7 +171,7 @@ final class Flash41LegacyStorageTests: XCTestCase {
             "unrelated.incomplete", in: gguf.appendingPathComponent(".cache/huggingface/download"))
         XCTAssertThrowsError(
             try Flash41LegacyStorage.remove(
-                candidates: [current, unrelated], ggufDirectory: gguf, cacheDirectory: cache))
+                candidates: [current, unrelated], ggufDirectories: [gguf], cacheDirectory: cache))
         XCTAssertTrue(fm.fileExists(atPath: current.path))
         XCTAssertTrue(fm.fileExists(atPath: unrelated.path))
     }
@@ -182,7 +182,7 @@ final class Flash41LegacyStorageTests: XCTestCase {
         let oldCache = cache.appendingPathComponent("kv-flash-41")
         try fm.createDirectory(at: oldCache, withIntermediateDirectories: true)
         try fm.createSymbolicLink(at: oldCache.appendingPathComponent("linked-session"), withDestinationURL: outside)
-        try Flash41LegacyStorage.remove(candidates: [oldCache], ggufDirectory: gguf, cacheDirectory: cache)
+        try Flash41LegacyStorage.remove(candidates: [oldCache], ggufDirectories: [gguf], cacheDirectory: cache)
         XCTAssertFalse(fm.fileExists(atPath: oldCache.path))
         XCTAssertTrue(fm.fileExists(atPath: valuable.path))
     }

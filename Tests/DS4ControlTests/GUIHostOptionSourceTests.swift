@@ -214,17 +214,18 @@ final class GUIHostOptionSourceTests: XCTestCase {
     /// (the final removal, last, catches the result) or fails with ENOENT.
     func testCancelRemovesPartSourceBeforeFinal() throws {
         let supervisor = try source("Sources/DS4Control/Services/SupervisorService.swift")
-        let cancel = try XCTUnwrap(supervisor.range(of: "func cancelDownload()"))
-        let body = supervisor[cancel.lowerBound..<supervisor.endIndex]
+        // The ordering lives in the shared artifact-discard helper both cancel paths use.
+        let discard = try XCTUnwrap(supervisor.range(of: "func discardTransportArtifacts("))
+        let body = supervisor[discard.lowerBound..<supervisor.endIndex]
         let nextFunc = try XCTUnwrap(body.range(of: "\n    func "))
-        let cancelBody = body[..<nextFunc.lowerBound]
+        let discardBody = body[..<nextFunc.lowerBound]
 
         let partRemoval = try XCTUnwrap(
-            cancelBody.range(of: "removeItem(at: base.appendingPathComponent(part.filename + \".part\"))"))
+            discardBody.range(of: "removeItem(at: base.appendingPathComponent(part.filename + \".part\"))"))
         let finalRemoval = try XCTUnwrap(
-            cancelBody.range(
+            discardBody.range(
                 of: "removeItem(at: base.appendingPathComponent(part.filename))",
-                range: partRemoval.upperBound..<cancelBody.endIndex))
+                range: partRemoval.upperBound..<discardBody.endIndex))
         XCTAssertLessThan(partRemoval.lowerBound, finalRemoval.lowerBound)
     }
 

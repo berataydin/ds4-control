@@ -24,6 +24,14 @@ final class AppState: ObservableObject {
     @Published var highPerformanceDownload: Bool {
         didSet { d.set(highPerformanceDownload, forKey: "highPerformanceDownload") }
     }
+    /// User-chosen model-downloads folder (Settings ▸ Downloads), as an absolute path.
+    /// Empty = the default `~/Library/Application Support/DS4 Control/gguf`. The raw string
+    /// is stored even when its volume is missing, so Settings can show the stale choice;
+    /// download/installed-model resolution goes through `configuredDownloadsDirectory`,
+    /// which validates the path is a live directory before using it.
+    @Published var downloadsDirectoryPath: String {
+        didSet { d.set(downloadsDirectoryPath, forKey: downloadsDirectoryDefaultsKey) }
+    }
     /// Whether DS4 Control opens automatically when the user logs in. Registered as a macOS
     /// login item via SMAppService. This is a snapshot of the OS state —
     /// `SMAppService.mainApp.status == .enabled` — refreshed on init, after each
@@ -103,6 +111,9 @@ final class AppState: ObservableObject {
             if resetMaxCreatedContext { d.set(0, forKey: "ctxOverride") }
         }
         highPerformanceDownload = d.bool(forKey: "highPerformanceDownload")  // default off
+        downloadsDirectoryPath =
+            (d.string(forKey: downloadsDirectoryDefaultsKey) ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         launchAtLogin = SMAppService.mainApp.status == .enabled  // OS is the source of truth
         let storedStopServerOnQuit = d.bool(forKey: "stopServerOnQuit")
         let storedQuitBehaviorChosen = d.bool(forKey: "quitBehaviorChosen")
@@ -139,6 +150,14 @@ final class AppState: ObservableObject {
         ctxOverride > 0
             ? min(ctxOverride, selectedVariant.ctxCeiling)
             : defaultCtx(ramGiB: ramGiB, selection: quantSelection)
+    }
+
+    /// The validated downloads folder from `downloadsDirectoryPath`, or nil when unset or
+    /// not an existing directory (downloads then target the default App Support location).
+    var configuredDownloadsDirectory: URL? { configuredDownloadsDir(defaults: d) }
+    /// True when a custom folder is stored but not currently usable (e.g. drive unmounted).
+    var downloadsDirectoryUnavailable: Bool {
+        !downloadsDirectoryPath.isEmpty && configuredDownloadsDirectory == nil
     }
 
     /// Set the chat's thinking level. Max is unavailable below 128 GiB; for the DeepSeek4

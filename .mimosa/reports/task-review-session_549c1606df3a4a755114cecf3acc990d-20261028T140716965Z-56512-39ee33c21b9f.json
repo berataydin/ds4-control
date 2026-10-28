@@ -1,0 +1,996 @@
+{
+  "schema_version": "mimosa-task-review/v2",
+  "run_id": "20261028T140716965Z-56512-39ee33c21b9f",
+  "run_status": "inconclusive",
+  "errors": [
+    {
+      "stage": "bash-discovery",
+      "target": ".build/checkouts/swift-cmark/src/include/html.h",
+      "reason": "bash_discovery_truncated: changed-file discovery exceeded 80 files"
+    },
+    {
+      "stage": "candidate-select",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/VectorBoolBenchmarks.cpp",
+      "reason": "candidate_limit_exceeded: 60 changed reviewable file(s) were not scanned because the limit is 20"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Utils/generate-docs.sh",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Utils/run-benchmarks.sh",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Utils/run-full-tests.sh",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Utils/shuffle-sources.sh",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Utils/Debugger/formatter_bytecode.py",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Utils/Debugger/generate_formatters.sh",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Utils/Debugger/test_formatters.py",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Utils/Debugger/Formatters/RigidArray.py",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Documentation/Announcement-benchmarks/generate-results.sh",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/RustBenchmarks/VecDequeBenchmarks.rs",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/CustomHash.h",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/DequeBenchmarks.cpp",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Hashing.cpp",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/MapBenchmarks.cpp",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/PriorityQueueBenchmarks.cpp",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedMapBenchmarks.cpp",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedSetBenchmarks.cpp",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Utils.cpp",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "baseline-read",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/VectorBenchmarks.cpp",
+      "reason": "baseline_snapshot_unreadable: file is missing from task baseline"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Utils/generate-docs.sh",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Utils/run-benchmarks.sh",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Utils/run-full-tests.sh",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Utils/shuffle-sources.sh",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Utils/Debugger/formatter_bytecode.py",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Utils/Debugger/generate_formatters.sh",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Utils/Debugger/test_formatters.py",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Utils/Debugger/Formatters/RigidArray.py",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Documentation/Announcement-benchmarks/generate-results.sh",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/RustBenchmarks/VecDequeBenchmarks.rs",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/CustomHash.h",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/DequeBenchmarks.cpp",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Hashing.cpp",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/MapBenchmarks.cpp",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/PriorityQueueBenchmarks.cpp",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedMapBenchmarks.cpp",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedSetBenchmarks.cpp",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Utils.cpp",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "scan",
+      "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/VectorBenchmarks.cpp",
+      "reason": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT"
+    },
+    {
+      "stage": "agent-check",
+      "target": ".",
+      "reason": "stop_budget_exhausted: focused agent configuration check was not run before the gate budget"
+    }
+  ],
+  "coverage": {
+    "schema_version": "mimosa-hook-coverage/v1",
+    "status": "partial",
+    "scope": "hook_observed_diff",
+    "baseline": {
+      "complete": true,
+      "captured_files": 10,
+      "candidate_limit": 5000,
+      "truncated": false,
+      "enumeration_error_count": 0,
+      "snapshot_error_count": 0,
+      "compensated_target_count": 1
+    },
+    "change_tracking": {
+      "touched_observed": 1,
+      "touched_retained": 1,
+      "truncated": false,
+      "bash_mutation": true,
+      "bash_discovered": 80,
+      "bash_discovery_limit": 80,
+      "bash_discovery_truncated": true
+    },
+    "candidates": {
+      "eligible_files": 80,
+      "selected_files": 20,
+      "limit": 20,
+      "truncated": true
+    },
+    "scanning": {
+      "required_files": 19,
+      "scanned_files": 0,
+      "skipped_files": 0,
+      "failed_files": 19,
+      "project_checks_required": 1,
+      "project_checks_completed": 0
+    },
+    "notification": {
+      "eligible_findings": 0,
+      "detailed_findings": 0,
+      "detail_limit": 3,
+      "truncated": false
+    },
+    "reason_counts": {
+      "bash_discovery_truncated": 1,
+      "candidate_limit_exceeded": 1,
+      "baseline_snapshot_unreadable": 19,
+      "scanner_failed": 19,
+      "stop_budget_exhausted": 1,
+      "project_check_failed": 41
+    },
+    "reasons": [
+      {
+        "code": "bash_discovery_truncated",
+        "stage": "bash-discovery",
+        "target": ".build/checkouts/swift-cmark/src/include/html.h",
+        "detail": "changed-file discovery exceeded 80 files",
+        "affects_completion": true
+      },
+      {
+        "code": "candidate_limit_exceeded",
+        "stage": "candidate-select",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/VectorBoolBenchmarks.cpp",
+        "detail": "60 changed reviewable file(s) were not scanned because the limit is 20",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/generate-docs.sh",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/run-benchmarks.sh",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/run-full-tests.sh",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/shuffle-sources.sh",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/Debugger/formatter_bytecode.py",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/Debugger/generate_formatters.sh",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/Debugger/test_formatters.py",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/Debugger/Formatters/RigidArray.py",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Documentation/Announcement-benchmarks/generate-results.sh",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/RustBenchmarks/VecDequeBenchmarks.rs",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/CustomHash.h",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/DequeBenchmarks.cpp",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Hashing.cpp",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/MapBenchmarks.cpp",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/PriorityQueueBenchmarks.cpp",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedMapBenchmarks.cpp",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedSetBenchmarks.cpp",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Utils.cpp",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/VectorBenchmarks.cpp",
+        "detail": "file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Utils/generate-docs.sh",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Utils/run-benchmarks.sh",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Utils/run-full-tests.sh",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Utils/shuffle-sources.sh",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Utils/Debugger/formatter_bytecode.py",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Utils/Debugger/generate_formatters.sh",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Utils/Debugger/test_formatters.py",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Utils/Debugger/Formatters/RigidArray.py",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Documentation/Announcement-benchmarks/generate-results.sh",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/RustBenchmarks/VecDequeBenchmarks.rs",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/CustomHash.h",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/DequeBenchmarks.cpp",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Hashing.cpp",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/MapBenchmarks.cpp",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/PriorityQueueBenchmarks.cpp",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedMapBenchmarks.cpp",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedSetBenchmarks.cpp",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Utils.cpp",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "scanner_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/VectorBenchmarks.cpp",
+        "detail": "spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "stop_budget_exhausted",
+        "stage": "agent-check",
+        "target": ".",
+        "detail": "focused agent configuration check was not run before the gate budget",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "bash-discovery",
+        "target": ".build/checkouts/swift-cmark/src/include/html.h",
+        "detail": "bash_discovery_truncated: changed-file discovery exceeded 80 files",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "candidate-select",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/VectorBoolBenchmarks.cpp",
+        "detail": "candidate_limit_exceeded: 60 changed reviewable file(s) were not scanned because the limit is 20",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/generate-docs.sh",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/run-benchmarks.sh",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/run-full-tests.sh",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/shuffle-sources.sh",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/Debugger/formatter_bytecode.py",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/Debugger/generate_formatters.sh",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/Debugger/test_formatters.py",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Utils/Debugger/Formatters/RigidArray.py",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Documentation/Announcement-benchmarks/generate-results.sh",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/RustBenchmarks/VecDequeBenchmarks.rs",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/CustomHash.h",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/DequeBenchmarks.cpp",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Hashing.cpp",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/MapBenchmarks.cpp",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/PriorityQueueBenchmarks.cpp",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedMapBenchmarks.cpp",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedSetBenchmarks.cpp",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Utils.cpp",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/VectorBenchmarks.cpp",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Utils/generate-docs.sh",
+        "detail": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "scan",
+        "target": ".build/checkouts/swift-collections/Utils/run-benchmarks.sh",
+        "detail": "scanner_failed: spawnSync /Users/berataydin/.nvm/versions/node/v23.11.0/bin/node ETIMEDOUT",
+        "affects_completion": true
+      }
+    ],
+    "reasons_truncated": true
+  },
+  "generated_at": "2026-10-28T14:07:16.965Z",
+  "session_id": "session_549c1606df3a4a755114cecf3acc990d",
+  "target": ".",
+  "revision": "daae74ee9f8b3267bbb30529164b441a7fdf0ab4",
+  "rules_version": "unavailable",
+  "diff_hash": "45ab099825c302a014c694f6b1240f4ab78af09318d578ecd4d8f9fa6f12485e",
+  "diff": {
+    "algorithm": "sha256",
+    "changed_file_count": 20,
+    "changed_files": [
+      {
+        "file": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/CustomHash.h",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 33
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "c026197e37ee1f03f7e0802eee84fe82a4cba913531c7244ecfb1039920c4452"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/DequeBenchmarks.cpp",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 142
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "e22efbcbbae4282b24b5323d5313c16b0295f3e7194634776034e23f29772a16"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Hashing.cpp",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 40
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "7ec8cad6c3dfef7a260de03a4158c4804929deb9e5ab1bd5e186e734e772e861"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/MapBenchmarks.cpp",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 72
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "13ad2251fb97153d5600674c50d76f3c77aaf5e6265b4439bb96d9ec7fbe91c0"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/PriorityQueueBenchmarks.cpp",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 65
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "b69cc21dad4d88050cec5f45ec9b755bfc7ddd558d7b8c4a147f5fa311fb017a"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedMapBenchmarks.cpp",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 98
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "c6629a199531df4e5174e217f0a36ed33342c6eebc76c7ed61b1b36cb8b3b672"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/UnorderedSetBenchmarks.cpp",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 92
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "ed24a8a0692636813fcdb0df4b4452f3e13ac967abd4f5474c17e919da283e0b"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/Utils.cpp",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 44
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "b50aa2f2be3d7b63ca5ffd305a85d3a7a4d35099616a003a0d517680e937fb79"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Benchmarks/Sources/CppBenchmarks/src/VectorBenchmarks.cpp",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 145
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "1d564f1fda83059fc7f6fef819a6beda708ffb4de9927daeac1730638f48b518"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Benchmarks/Sources/RustBenchmarks/VecDequeBenchmarks.rs",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 138
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "af205169dc2fa1eeb46cf4e8228a64c567e806bd2ccf547df58861750cfa515d"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Documentation/Announcement-benchmarks/generate-results.sh",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 18
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "e283b5f363ad01153b85377301b2ecce43e01c0ae088a33cd18168de7355b16a"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Utils/Debugger/formatter_bytecode.py",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 1335
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "a8864d77a3897f2dd00626d20dd215bf9f9bad533e93cb4cc462a0d633b65e52"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Utils/Debugger/Formatters/RigidArray.py",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 41
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "8552b9a5894e8d3edb45ab8f384e5389eab0d00c4015606846a94b2cf19d5e8e"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Utils/Debugger/generate_formatters.sh",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 47
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "60f72ee6789f8c04fd7b5b9203e5f58c0d481409e51171852433dab24b7aceb3"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Utils/Debugger/test_formatters.py",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 161
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "8ae7793ff06b35ecdc1df3f85635a1f0e768b3f85317cf3a8f39f418c747dd73"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Utils/generate-docs.sh",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 82
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "44ea07c2732d44ab067aff15bf5c6a0133fa9f71074020644439ba24996ba327"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Utils/run-benchmarks.sh",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 47
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "d245f8d51ef56ce48624e6195b4cfed9496d51b0f7d82fc4f6fc381ee8f83d15"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Utils/run-full-tests.sh",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 145
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "7e99d44dacc04867d11d009420d2b0b6819430f478e802f1eddbb9dfe7a00d14"
+      },
+      {
+        "file": ".build/checkouts/swift-collections/Utils/shuffle-sources.sh",
+        "ranges": [
+          {
+            "start": 1,
+            "end": 48
+          }
+        ],
+        "before_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "after_hash": "6e4f65a301fcfc7d454193f9022991a7de7c9c17bed0c8066752fc4db0e89132"
+      },
+      {
+        "file": "AGENTS.md",
+        "ranges": [
+          {
+            "start": 107,
+            "end": 108
+          }
+        ],
+        "before_hash": "8011bc3818da83463ce74c73197f14bc58e9cb1b399382f4154cb7e71058dbbc",
+        "after_hash": "39162a86019d41325c3280658b72a7f427454ca588821ff0ab93c943fa7a92ea"
+      }
+    ]
+  },
+  "timing": {
+    "started_at": "2026-10-28T14:07:14.718Z",
+    "completed_at": "2026-10-28T14:07:16.965Z",
+    "duration_ms": 2247,
+    "measurement": "hook_wall_clock"
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "model_calls": 0,
+    "measurement": "known-zero"
+  },
+  "telemetry": {
+    "schemaVersion": "mimosa-gate-telemetry/v1",
+    "profile": "gate",
+    "operation": "Stop",
+    "outcome": "partial/INCONCLUSIVE",
+    "latencyMs": 2247,
+    "peakMemoryBytes": 114327552,
+    "memoryMeasurement": "max-observed-process-rss",
+    "scannedFiles": 0,
+    "cache": {
+      "hits": 0,
+      "misses": 0,
+      "measurement": "not-applicable"
+    },
+    "denyCount": 0,
+    "tokens": {
+      "input": 0,
+      "output": 0,
+      "total": 0,
+      "modelCalls": 0,
+      "measurement": "known-zero"
+    }
+  },
+  "finding_count": 0,
+  "rewake_finding_count": 0,
+  "evidence_boundary": {
+    "scan": "candidate",
+    "static_fix_verification": "observed_static_only",
+    "runtime_verification": "not_performed"
+  },
+  "finding_events": [],
+  "findings": [],
+  "artifacts": {
+    "immutable_report": ".mimosa/reports/task-review-session_549c1606df3a4a755114cecf3acc990d-20261028T140716965Z-56512-39ee33c21b9f.json",
+    "latest_report": ".mimosa/reports/task-review-session_549c1606df3a4a755114cecf3acc990d.json",
+    "history_summary": ".mimosa/history/run-20261028T140716965Z-56512-39ee33c21b9f.json"
+  }
+}

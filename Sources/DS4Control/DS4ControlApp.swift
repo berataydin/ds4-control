@@ -16,7 +16,11 @@ struct DS4ControlApp: App {
         _app = StateObject(wrappedValue: app)  // same instance the chat closures read, so the UI's toggles reach it
         let supervisor = SupervisorService(
             ds4Dir: bundledDS4Dir(), runner: RealProcessRunner(),
-            ggufBaseURL: ds4AppSupportDir().appendingPathComponent("gguf", isDirectory: true))
+            ggufBaseURL: defaultGGUFDir(),
+            // The Settings ▸ Downloads folder choice, validated live (nil = default above).
+            // Re-read on every use, so changing it re-points downloads and installed-model
+            // checks without restarting the app.
+            ggufPreferredDir: { app.configuredDownloadsDirectory })
         _supervisor = StateObject(wrappedValue: supervisor)
         let service = ChatService()
         _chat = StateObject(
