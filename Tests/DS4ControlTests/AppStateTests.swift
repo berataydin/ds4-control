@@ -33,6 +33,41 @@ final class AppStateTests: XCTestCase {
         XCTAssertEqual(app.host, AppState.defaultHost)
     }
 
+    func testChatParamsDefaultPersistAndClampOnLoad() {
+        // Defaults: 65,536 tokens (above the old hardwired 32K Max Think cap) and 0.7 temperature.
+        let fresh = "test.\(UUID().uuidString)"
+        XCTAssertEqual(
+            AppState(defaults: UserDefaults(suiteName: fresh)!).maxOutputTokens,
+            ChatService.defaultMaxTokens)
+        XCTAssertEqual(
+            AppState(defaults: UserDefaults(suiteName: fresh)!).chatTemperature,
+            ChatService.defaultTemperature)
+
+        // Persistence round-trip.
+        let name = "test.\(UUID().uuidString)"
+        let a1 = AppState(defaults: UserDefaults(suiteName: name)!)
+        a1.maxOutputTokens = 131_072
+        a1.chatTemperature = 0.2
+        let a2 = AppState(defaults: UserDefaults(suiteName: name)!)
+        XCTAssertEqual(a2.maxOutputTokens, 131_072)
+        XCTAssertEqual(a2.chatTemperature, 0.2)
+
+        // Out-of-range stored values are clamped into range on load, never rejected.
+        let low = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
+        low.set(100, forKey: "maxOutputTokens")
+        low.set(-1.0, forKey: "chatTemperature")
+        let lowApp = AppState(defaults: low)
+        XCTAssertEqual(lowApp.maxOutputTokens, AppState.maxOutputTokensRange.lowerBound)
+        XCTAssertEqual(lowApp.chatTemperature, AppState.chatTemperatureRange.lowerBound)
+
+        let high = UserDefaults(suiteName: "test.\(UUID().uuidString)")!
+        high.set(5_000_000, forKey: "maxOutputTokens")
+        high.set(5.0, forKey: "chatTemperature")
+        let highApp = AppState(defaults: high)
+        XCTAssertEqual(highApp.maxOutputTokens, AppState.maxOutputTokensRange.upperBound)
+        XCTAssertEqual(highApp.chatTemperature, AppState.chatTemperatureRange.upperBound)
+    }
+
     func testNormalizeHostForLaunchTrimsWhitespace() {
         let name = "test.\(UUID().uuidString)"
         let app = AppState(defaults: UserDefaults(suiteName: name)!)

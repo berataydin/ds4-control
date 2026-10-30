@@ -19,6 +19,18 @@ final class AppState: ObservableObject {
     /// The chat's thinking level (Off / Standard / Max Think). Coding-agent CLIs set their
     /// own per-request level, so this affects only the built-in chat.
     @Published var thinkingMode: ThinkingMode { didSet { d.set(thinkingMode.rawValue, forKey: "thinkingMode") } }
+    /// Stored bounds for the built-in chat's generation parameters. The token ceiling is the
+    /// largest variant context ceiling (V4.1's 1,048,576); out-of-range stored values are
+    /// clamped on load, never rejected.
+    static let maxOutputTokensRange: ClosedRange<Int> = 1_024...1_048_576
+    static let chatTemperatureRange: ClosedRange<Double> = 0...2
+    /// The built-in chat's `max_tokens` cap. Max Think reasoning can run well past the old
+    /// hardwired 32K, so the default is 65,536; raise it if long answers still stop early.
+    /// Applies to the next message without a server restart. Coding agents set their own.
+    @Published var maxOutputTokens: Int { didSet { d.set(maxOutputTokens, forKey: "maxOutputTokens") } }
+    /// The built-in chat's sampling temperature. Applies to the next message; coding
+    /// agents set their own.
+    @Published var chatTemperature: Double { didSet { d.set(chatTemperature, forKey: "chatTemperature") } }
     /// High-performance downloads (64 parallel connections). Off by default: 8 connections
     /// keeps the connection count CGNAT-safe. See SupervisorService.download.
     @Published var highPerformanceDownload: Bool {
@@ -111,6 +123,14 @@ final class AppState: ObservableObject {
             if resetMaxCreatedContext { d.set(0, forKey: "ctxOverride") }
         }
         highPerformanceDownload = d.bool(forKey: "highPerformanceDownload")  // default off
+        let storedMaxTokens = d.object(forKey: "maxOutputTokens") as? Int
+        maxOutputTokens = min(
+            max(storedMaxTokens ?? ChatService.defaultMaxTokens, Self.maxOutputTokensRange.lowerBound),
+            Self.maxOutputTokensRange.upperBound)
+        let storedTemperature = d.object(forKey: "chatTemperature") as? Double
+        chatTemperature = min(
+            max(storedTemperature ?? ChatService.defaultTemperature, Self.chatTemperatureRange.lowerBound),
+            Self.chatTemperatureRange.upperBound)
         downloadsDirectoryPath =
             (d.string(forKey: downloadsDirectoryDefaultsKey) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)

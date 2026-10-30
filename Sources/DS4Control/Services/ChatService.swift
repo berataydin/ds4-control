@@ -10,6 +10,13 @@ struct ChatService {
         case badStatus(Int)
     }
 
+    /// Request defaults for the built-in chat. The single source of truth for the
+    /// persisted AppState preferences (`maxOutputTokens` / `chatTemperature`) and the
+    /// Settings captions, so the UI can never drift from what the request sends.
+    /// 65,536 keeps Max Think's long reasoning from stopping at the old 32K cap.
+    static let defaultMaxTokens = 65_536
+    static let defaultTemperature = 0.7
+
     /// Produces raw SSE lines for a built request. Injected for determinism.
     var lineSource: (URLRequest) -> AsyncThrowingStream<String, Error>
 
@@ -18,10 +25,14 @@ struct ChatService {
     }
 
     /// Streams assistant content deltas (and a trailing usage event) for the conversation.
-    func stream(port: Int, model: String, messages: [ChatMessage], mode: ThinkingMode) -> AsyncThrowingStream<
-        ChatStreamEvent, Error
-    > {
-        let request = Self.makeRequest(port: port, model: model, messages: messages, mode: mode)
+    func stream(
+        port: Int, model: String, messages: [ChatMessage], mode: ThinkingMode,
+        maxTokens: Int = ChatService.defaultMaxTokens,
+        temperature: Double = ChatService.defaultTemperature
+    ) -> AsyncThrowingStream<ChatStreamEvent, Error> {
+        let request = Self.makeRequest(
+            port: port, model: model, messages: messages, mode: mode,
+            maxTokens: maxTokens, temperature: temperature)
         let lines = lineSource(request)
         return AsyncThrowingStream { continuation in
             let task = Task {
@@ -51,7 +62,11 @@ struct ChatService {
         }
     }
 
-    static func makeRequest(port: Int, model: String, messages: [ChatMessage], mode: ThinkingMode) -> URLRequest {
+    static func makeRequest(
+        port: Int, model: String, messages: [ChatMessage], mode: ThinkingMode,
+        maxTokens: Int = ChatService.defaultMaxTokens,
+        temperature: Double = ChatService.defaultTemperature
+    ) -> URLRequest {
         var request = URLRequest(url: URL(string: "http://127.0.0.1:\(port)/v1/chat/completions")!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -62,8 +77,8 @@ struct ChatService {
         var body: [String: Any] = [
             "model": model,
             "messages": messages.map { ["role": $0.role == .user ? "user" : "assistant", "content": $0.content] },
-            "temperature": 0.7,
-            "max_tokens": 32768,
+            "temperature": temperature,
+            "max_tokens": maxTokens,
             "thinking": mode != .off,
             "stream": true,
             "stream_options": ["include_usage": true],

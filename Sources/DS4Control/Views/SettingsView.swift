@@ -77,6 +77,14 @@ struct SettingsView: View {
         return "Max Think needs a context of at least 393,216 — you'll be asked to raise it. " + base
     }
 
+    /// Generation-parameter defaults line for the Chat footer: names both defaults and says
+    /// when they apply, so the truncation cap is discoverable before it bites.
+    private var chatParamsFooter: String {
+        "Defaults: \(ChatService.defaultMaxTokens.formatted()) max output tokens "
+            + "(raise it if long Max Think answers stop early), temperature \(ChatService.defaultTemperature.formatted()). "
+            + "Applies to the next message — no server restart needed."
+    }
+
     /// The Server-group values a launch would use right now, normalized exactly the way
     /// `SupervisorService.start` normalizes them (trimmed/defaulted bind host; V4.1 ignores
     /// the power slider).
@@ -118,6 +126,22 @@ struct SettingsView: View {
 
     private var powerBinding: Binding<Double> {
         Binding(get: { Double(app.power ?? 100) }, set: { app.power = Int($0.rounded()) })
+    }
+    private var temperatureBinding: Binding<Double> {
+        Binding(get: { app.chatTemperature }, set: { app.chatTemperature = $0 })
+    }
+    /// Max output tokens as text. Backspacing it away restores the default. Typed values are
+    /// ceiling-clamped like the context field (small intermediates are allowed while typing;
+    /// AppState clamps the full 1,024…1,048,576 range on the next launch).
+    private var maxTokensText: Binding<String> {
+        Binding(
+            get: { String(app.maxOutputTokens) },
+            set: {
+                let digits = $0.filter(\.isNumber)
+                guard !digits.isEmpty else { app.maxOutputTokens = ChatService.defaultMaxTokens; return }
+                app.maxOutputTokens = min(
+                    Int(digits) ?? ChatService.defaultMaxTokens, AppState.maxOutputTokensRange.upperBound)
+            })
     }
     private var sessionsBinding: Binding<Double> {
         Binding(get: { Double(app.concurrentSessions) }, set: { app.concurrentSessions = Int($0.rounded()) })
@@ -320,10 +344,30 @@ struct SettingsView: View {
 
             Section {
                 ThinkingModePicker()
+                LabeledContent {
+                    TextField(String(ChatService.defaultMaxTokens), text: maxTokensText)
+                        .labelsHidden().multilineTextAlignment(.trailing).frame(width: 130)
+                } label: {
+                    Text("Max output tokens")
+                }
+                LabeledContent {
+                    HStack(spacing: 10) {
+                        Slider(value: temperatureBinding, in: AppState.chatTemperatureRange, step: 0.05)
+                        Text(app.chatTemperature, format: .number.precision(.fractionLength(2)))
+                            .monospacedDigit().foregroundStyle(.secondary)
+                            .frame(width: 34, alignment: .trailing)
+                    }
+                    .frame(width: 230)
+                } label: {
+                    Text("Temperature")
+                }
             } header: {
                 Text("Chat")
             } footer: {
-                Text(thinkingHint)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(thinkingHint)
+                    Text(chatParamsFooter)
+                }
             }
 
             Section {

@@ -105,7 +105,7 @@ final class ChatServiceTests: XCTestCase {
         let json = try XCTUnwrap(try JSONSerialization.jsonObject(with: body) as? [String: Any])
         XCTAssertEqual(json["model"] as? String, "deepseek-v4-pro")
         XCTAssertEqual(json["temperature"] as? Double, 0.7)
-        XCTAssertEqual(json["max_tokens"] as? Int, 32768)
+        XCTAssertEqual(json["max_tokens"] as? Int, 65_536)  // ChatService.defaultMaxTokens
         XCTAssertEqual(json["thinking"] as? Bool, false)
         XCTAssertNil(json["reasoning_effort"])  // off → no max effort
         XCTAssertEqual(json["stream"] as? Bool, true)
@@ -114,6 +114,17 @@ final class ChatServiceTests: XCTestCase {
         let messages = try XCTUnwrap(json["messages"] as? [[String: String]])
         XCTAssertEqual(messages.first?["role"], "user")
         XCTAssertEqual(messages.first?["content"], "hi")
+    }
+
+    func testCustomMaxTokensAndTemperatureLandInBody() throws {
+        let request = ChatService.makeRequest(
+            port: 9001, model: "deepseek-v4.1-flash",
+            messages: [ChatMessage(role: .user, content: "hi")], mode: .max,
+            maxTokens: 131_072, temperature: 0.2)
+        let json = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: XCTUnwrap(request.httpBody)) as? [String: Any])
+        XCTAssertEqual(json["max_tokens"] as? Int, 131_072)  // persisted preference reaches the wire
+        XCTAssertEqual(json["temperature"] as? Double, 0.2)
     }
 
     func testMaxModeRequestEnablesMaxEffort() throws {
