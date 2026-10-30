@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-delivery-20261030T151845575Z-56927-037e1b3c11af",
+  "runId": "20261030T151845575Z-56927-037e1b3c11af",
+  "runStatus": "completed",
+  "coverage": {
+    "status": "complete",
+    "reasons": []
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "StopDelivery"
+  },
+  "revision": "4614b785c5b938689831564e09b98c7dddd764a9",
+  "diffHash": "22d7b31545a5c303ce29e367c094e61f66dd0ef2ec375fe740e843ec6e9f4d9b",
+  "rulesVersion": "unavailable",
+  "sessionHash": "44e3139b94dc6b3239d0837a0105283b3b5eaac11406b80e28deb4913c24f79e",
+  "reportRef": ".mimosa/reports/task-review-sess_afcf1b06-4697-4fb5-9970-0dc030035dac-20261030T151845575Z-56927-037e1b3c11af.json",
+  "events": [
+    {
+      "eventId": "hook-8a4ddf06cdee20c9f49c91631993c9b8",
+      "findingId": "mimosa-d0f69134970c7ccf361149fd",
+      "type": "finding_blocked",
+      "at": "2026-10-30T15:18:45.860Z",
+      "identity": {
+        "projectRelativeFile": "DS4 Control.app/Contents/Resources/SwiftMath_SwiftMath.bundle/Contents/Resources/mathFonts.bundle/math_table_to_plist.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "9dd6fc8a2e62ad130d643d81d2843766cc307f7ac9b3a778f9497ece72850200",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 27,
+      "endLine": 27,
+      "reasonCode": "stop_rewake",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "9dd6fc8a2e62ad130d643d81d2843766cc307f7ac9b3a778f9497ece72850200"
+      },
+      "sequence": 0
+    },
+    {
+      "eventId": "hook-294f65be05ae3dc401f1419db0becc05",
+      "findingId": "mimosa-b155e69ab9e4390531935dc8",
+      "type": "finding_blocked",
+      "at": "2026-10-30T15:18:45.860Z",
+      "identity": {
+        "projectRelativeFile": "DS4 Control.app/Contents/Resources/SwiftMath_SwiftMath.bundle/Contents/Resources/mathFonts.bundle/math_table_to_plist.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "69cc0df2b128b93de70cac714dca804ddcbbdd8174d6c2455c273b8321becb3b",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 202,
+      "endLine": 202,
+      "reasonCode": "stop_rewake",
+      "reportedToAgent": true,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "69cc0df2b128b93de70cac714dca804ddcbbdd8174d6c2455c273b8321becb3b"
+      },
+      "sequence": 1
+    }
+  ],
+  "observedFindingIds": [],
+  "verifiedFiles": [],
+  "recordedAt": "2026-10-30T15:18:46.098Z"
+}

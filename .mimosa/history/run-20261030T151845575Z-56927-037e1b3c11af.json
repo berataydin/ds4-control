@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "mimosa-finding-history/v1",
+  "runId": "20261030T151845575Z-56927-037e1b3c11af",
+  "runStatus": "inconclusive",
+  "errors": [
+    "baseline-read:DS4 Control.app/Contents/Resources/ds4/download_model.sh: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:DS4 Control.app/Contents/Resources/ds4/metal/generate_mxfp4_half_lut.py: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:DS4 Control.app/Contents/Resources/SwiftMath_SwiftMath.bundle/Contents/Resources/mathFonts.bundle/math_table_to_plist.py: baseline_snapshot_unreadable: file is missing from task baseline"
+  ],
+  "target": ".",
+  "revision": "4614b785c5b938689831564e09b98c7dddd764a9",
+  "diffHash": "22d7b31545a5c303ce29e367c094e61f66dd0ef2ec375fe740e843ec6e9f4d9b",
+  "rulesVersion": "unavailable",
+  "recordedAt": "2026-10-30T15:18:45.575Z",
+  "timing": {
+    "startedAt": "2026-10-30T15:18:44.184Z",
+    "completedAt": "2026-10-30T15:18:45.575Z",
+    "durationMs": 1391
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "modelCalls": 0,
+    "measurement": "known-zero"
+  },
+  "findings": {
+    "total": 2,
+    "bySeverity": {
+      "high": 2
+    },
+    "byStatus": {
+      "blocked": 2
+    }
+  },
+  "coverage": {
+    "status": "partial",
+    "reasonCounts": {
+      "baseline_snapshot_unreadable": 3,
+      "project_check_failed": 3
+    }
+  },
+  "evidenceBoundary": "static_only",
+  "immutableReport": ".mimosa/reports/task-review-sess_afcf1b06-4697-4fb5-9970-0dc030035dac-20261030T151845575Z-56927-037e1b3c11af.json"
+}

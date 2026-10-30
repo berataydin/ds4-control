@@ -1,0 +1,134 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20261030T151845575Z-56927-037e1b3c11af",
+  "runId": "20261030T151845575Z-56927-037e1b3c11af",
+  "runStatus": "inconclusive",
+  "coverage": {
+    "status": "partial",
+    "reasons": [
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "DS4 Control.app/Contents/Resources/ds4/download_model.sh",
+        "detail": "file is missing from task baseline",
+        "affectsCompletion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "DS4 Control.app/Contents/Resources/ds4/metal/generate_mxfp4_half_lut.py",
+        "detail": "file is missing from task baseline",
+        "affectsCompletion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "DS4 Control.app/Contents/Resources/SwiftMath_SwiftMath.bundle/Contents/Resources/mathFonts.bundle/math_table_to_plist.py",
+        "detail": "file is missing from task baseline",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "DS4 Control.app/Contents/Resources/ds4/download_model.sh",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "DS4 Control.app/Contents/Resources/ds4/metal/generate_mxfp4_half_lut.py",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "DS4 Control.app/Contents/Resources/SwiftMath_SwiftMath.bundle/Contents/Resources/mathFonts.bundle/math_table_to_plist.py",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affectsCompletion": true
+      }
+    ]
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "4614b785c5b938689831564e09b98c7dddd764a9",
+  "diffHash": "22d7b31545a5c303ce29e367c094e61f66dd0ef2ec375fe740e843ec6e9f4d9b",
+  "rulesVersion": "unavailable",
+  "sessionHash": "44e3139b94dc6b3239d0837a0105283b3b5eaac11406b80e28deb4913c24f79e",
+  "reportRef": ".mimosa/reports/task-review-sess_afcf1b06-4697-4fb5-9970-0dc030035dac-20261030T151845575Z-56927-037e1b3c11af.json",
+  "events": [
+    {
+      "eventId": "hook-9e70907b2f272ab5da816dda04870f49",
+      "findingId": "mimosa-d0f69134970c7ccf361149fd",
+      "type": "finding_observed",
+      "at": "2026-10-30T15:18:45.575Z",
+      "identity": {
+        "projectRelativeFile": "DS4 Control.app/Contents/Resources/SwiftMath_SwiftMath.bundle/Contents/Resources/mathFonts.bundle/math_table_to_plist.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "9dd6fc8a2e62ad130d643d81d2843766cc307f7ac9b3a778f9497ece72850200",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 27,
+      "endLine": 27,
+      "reasonCode": "observe",
+      "reportedToAgent": false,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "9dd6fc8a2e62ad130d643d81d2843766cc307f7ac9b3a778f9497ece72850200"
+      },
+      "sequence": 0
+    },
+    {
+      "eventId": "hook-6e375870f362accdff590fc5fea6fe50",
+      "findingId": "mimosa-b155e69ab9e4390531935dc8",
+      "type": "finding_observed",
+      "at": "2026-10-30T15:18:45.575Z",
+      "identity": {
+        "projectRelativeFile": "DS4 Control.app/Contents/Resources/SwiftMath_SwiftMath.bundle/Contents/Resources/mathFonts.bundle/math_table_to_plist.py",
+        "ruleId": "security",
+        "codeEvidenceHash": "69cc0df2b128b93de70cac714dca804ddcbbdd8174d6c2455c273b8321becb3b",
+        "confidence": "stable"
+      },
+      "scope": "direct",
+      "line": 202,
+      "endLine": 202,
+      "reasonCode": "observe",
+      "reportedToAgent": false,
+      "evidence": {
+        "kind": "source",
+        "boundary": "candidate",
+        "producer": "deterministic",
+        "evidenceHash": "69cc0df2b128b93de70cac714dca804ddcbbdd8174d6c2455c273b8321becb3b"
+      },
+      "sequence": 1
+    }
+  ],
+  "observedFindingIds": [
+    "mimosa-d0f69134970c7ccf361149fd",
+    "mimosa-b155e69ab9e4390531935dc8"
+  ],
+  "verifiedFiles": [
+    {
+      "file": "DS4 Control.app/Contents/Resources/ds4/download_model.sh",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "DS4 Control.app/Contents/Resources/ds4/metal/generate_mxfp4_half_lut.py",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "DS4 Control.app/Contents/Resources/SwiftMath_SwiftMath.bundle/Contents/Resources/mathFonts.bundle/math_table_to_plist.py",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-10-30T15:18:45.838Z"
+}
