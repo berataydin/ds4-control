@@ -65,6 +65,12 @@ for b in "$BIN_DIR"/*.bundle; do
 done
 shopt -u nullglob
 
+# Dev-only scripts inside SwiftPM resource bundles are never read at runtime — the app
+# loads only the data assets (fonts, tables, JS/CSS). E.g. SwiftMath's mathFonts.bundle
+# ships math_table_to_plist.py, the font-table generator its maintainers ran to produce
+# the bundled .plists. Strip interpreter scripts so the shipped .app carries none.
+find "$APP/Contents/Resources" -type f -name "*.py" -delete
+
 # Every *.bundle the release pipeline codesigns (it recurses with `find -name '*.bundle'`)
 # needs an Info.plist, or codesign rejects it ("bundle format unrecognized"). Some SwiftPM
 # resource bundles — and bundles nested inside them, e.g. SwiftMath's mathFonts.bundle — ship
