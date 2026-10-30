@@ -1,9 +1,11 @@
 // Chat UI ported from mlx-serve (MIT, Copyright 2026 David):
 // app/Sources/MLXServe/Views/ChatView.swift. The transcript layout, auto-scroll to
 // the latest message, MessageBubble and the iMessage-style input bar are adapted from
-// that source, stripped of mlx-serve's agent/tools/MCP/multi-session machinery for
-// DS4's single conversation. GeneratingIndicator is fresh DS4 code (the original drove
-// IOKit/Mach GPU telemetry on a polling Timer, unsuitable here).
+// that source, stripped of mlx-serve's agent/tools/MCP machinery. DS4-specific code:
+// GeneratingIndicator (the original drove IOKit/Mach GPU telemetry on a polling
+// Timer), the pinned-to-bottom follow guard with the Jump-to-latest affordance, and
+// the multi-session history sidebar (ChatViewModel owns persistence; see
+// ChatSessionStore).
 
 import AppKit
 import Combine
@@ -15,6 +17,9 @@ struct ChatView: View {
     @ObservedObject var viewModel: ChatViewModel
 
     @FocusState private var inputFocused: Bool
+
+    /// History sidebar visibility (persisted). Toggle in the chat header.
+    @AppStorage("chatSidebarVisible") private var sidebarVisible = true
 
     /// How many of the most recent messages stay in the active view tree. Older
     /// messages are *frozen* — excluded from the `ForEach` so the layout pass
@@ -38,10 +43,22 @@ struct ChatView: View {
     /// from there dirties AttributeGraph while it is already placing the transcript.
     @State private var scrollCoordinator = ScrollCoordinator()
 
+    /// Whether the transcript is currently NOT following the tail, i.e. the Jump-to-latest
+    /// button is shown. Unlike the follow bookkeeping this *renders*, so it is published
+    /// state — but it flips only on pinned→unpinned transitions, never per geometry tick.
+    @State private var showsJumpToLatest = false
+
+    /// Conversation being renamed via the sidebar context menu (drives the rename sheet).
+    @State private var renamingSession: ChatSession?
+
+    /// Conversation awaiting delete confirmation (drives the destructive alert).
+    @State private var pendingDeleteSession: ChatSession?
+
     /// Scroll metrics observed (via `onScrollGeometryChange`) to drive the follow guard.
     private struct ScrollMetrics: Equatable {
         var offsetY: CGFloat
         var distanceFromBottom: CGFloat
+        var contentHeight: CGFloat
     }
 
     private struct StreamingTailRevision: Equatable {
@@ -171,16 +188,28 @@ struct ChatView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
-            transcript
-            Divider()
-            inputBar
-            Divider()
-            statusBar
+        HStack(spacing: 0) {
+            if sidebarVisible {
+                ChatHistorySidebar(
+                    viewModel: viewModel,
+                    onRename: { renamingSession = $0 },
+                    onDelete: { pendingDeleteSession = $0 }
+                )
+                .frame(width: 220)
+                Divider()
+            }
+
+            VStack(spacing: 0) {
+                header
+                Divider()
+                transcript
+                Divider()
+                inputBar
+                Divider()
+                statusBar
+            }
         }
-        .frame(minWidth: 560, minHeight: 640)
+        .frame(minWidth: 700, minHeight: 640)
         .onAppear { WindowChrome.windowOpened(title: "DS4 Chat") }
         .onDisappear { WindowChrome.windowClosed() }
         // Focus the input the instant the window becomes key. WindowChrome makes it key
@@ -189,6 +218,34 @@ struct ChatView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) {
             note in
             if (note.object as? NSWindow)?.title == "DS4 Chat" { inputFocused = true }
+        }
+        // Switching conversations must land at the fresh transcript's bottom even when the
+        // previous one was left scrolled up — the explicit snap bypasses the follow guard.
+        .onChange(of: viewModel.activeSessionID) { _, _ in
+            setPinned(true)
+            bottomSnapRequest &+= 1
+        }
+        .sheet(item: $renamingSession) { session in
+            RenameChatSheet(initialTitle: session.title) { newTitle in
+                viewModel.renameSession(session.id, to: newTitle)
+            }
+        }
+        .alert(
+            "Delete conversation?",
+            isPresented: Binding(
+                get: { pendingDeleteSession != nil },
+                set: { if !$0 { pendingDeleteSession = nil } }),
+            presenting: pendingDeleteSession
+        ) { session in
+            Button("Delete", role: .destructive) {
+                pendingDeleteSession = nil
+                viewModel.deleteSession(session.id)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { session in
+            Text(
+                "“\(session.title)” and its \(session.messages.count) message\(session.messages.count == 1 ? "" : "s") will be deleted permanently."
+            )
         }
     }
 
@@ -218,16 +275,46 @@ struct ChatView: View {
     }
 
     private var header: some View {
-        HStack {
-            Text(supervisor.activeModel ?? viewModel.model)
-                .font(.headline)
-                .foregroundStyle(.primary)
+        HStack(spacing: 10) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { sidebarVisible.toggle() }
+            } label: {
+                Image(systemName: "sidebar.leading")
+            }
+            .buttonStyle(.borderless)
+            .help(sidebarVisible ? "Hide conversation list" : "Show conversation list")
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(supervisor.activeModel ?? viewModel.model)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                if let title = viewModel.activeSessionTitle {
+                    Text(title)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+            }
+
             Spacer()
+
+            Button {
+                viewModel.newChat()
+            } label: {
+                Label("New Chat", systemImage: "plus.circle")
+            }
+            .buttonStyle(.borderless)
+            .keyboardShortcut("n", modifiers: .command)
+            .disabled(viewModel.isStreaming || viewModel.messages.isEmpty)
+            .help("Start a new conversation (⌘N)")
+
             Button("Clear") {
                 viewModel.clear()
             }
             .buttonStyle(.borderless)
             .disabled(viewModel.messages.isEmpty)
+            .help("Remove every message from this conversation")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -290,40 +377,111 @@ struct ChatView: View {
         }
         .onChange(of: viewModel.messages.count) { _, _ in
             scrollCoordinator.userPinnedToBottom = true
+            showsJumpToLatest = false
         }
         .onScrollGeometryChange(for: ScrollMetrics.self) { geometry in
             ScrollMetrics(
                 offsetY: geometry.contentOffset.y,
-                distanceFromBottom: geometry.contentSize.height - geometry.visibleRect.maxY)
+                distanceFromBottom: geometry.contentSize.height - geometry.visibleRect.maxY,
+                contentHeight: geometry.contentSize.height)
         } action: { old, new in
-            // Disengage the follow only on a deliberate scroll-up — the offset *decreases*.
-            // Streaming growth pushes the bottom away (distance grows) but leaves the offset
-            // unchanged, so it must NOT unpin. Re-engage once the view is back at the bottom.
-            if new.offsetY < old.offsetY - 40 {
-                scrollCoordinator.userPinnedToBottom = false
+            // Disengage the follow on a deliberate scroll-up: the offset *decreases*.
+            // A trackpad scroll-up arrives as a stream of tiny decrements, so ANY decrease
+            // counts as user intent — the old single-event 40pt threshold never fired and
+            // the transcript kept snapping to the streaming tail while the user scrolled.
+            // The content-height guard keeps layout-driven shifts (streaming growth, window
+            // resize rewraps, the 50-message window sliding at send) from faking intent:
+            // those change the height in the same event, a pure scroll-up does not.
+            // Re-engage once the view is back at the bottom.
+            let contentShifted = abs(new.contentHeight - old.contentHeight) > 0.5
+            if !contentShifted && new.offsetY < old.offsetY - 0.5 {
+                setPinned(false)
             } else if new.distanceFromBottom < 24 {
-                scrollCoordinator.userPinnedToBottom = true
+                setPinned(true)
             }
         }
+        .overlay {
+            if viewModel.messages.isEmpty && !viewModel.isStreaming {
+                emptyState
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if showsJumpToLatest {
+                jumpToLatestButton
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: showsJumpToLatest)
+    }
+
+    /// Placeholder shown in a brand-new (or cleared) conversation.
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+                .font(.system(size: 34))
+                .foregroundStyle(.tertiary)
+            Text("No messages yet")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+            Text("Ask anything below — conversations are saved automatically.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .allowsHitTesting(false)
+    }
+
+    /// Floating affordance while the transcript is scrolled away from the tail — visible
+    /// both mid-stream (reading back through the reply) and while idle.
+    private var jumpToLatestButton: some View {
+        Button(action: jumpToLatest) {
+            Image(systemName: "arrow.down.circle.fill")
+                .font(.system(size: 26))
+                .foregroundStyle(.white, Color.accentColor)
+                .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
+        }
+        .buttonStyle(.plain)
+        .padding(.trailing, 16)
+        .padding(.bottom, 12)
+        .help("Jump to the latest message")
+        .transition(.opacity.combined(with: .scale(scale: 0.9)))
     }
 
     private var streamingTailRevision: StreamingTailRevision {
-        guard viewModel.isStreaming,
-            let message = viewModel.messages.last,
-            message.isStreaming
-        else { return .inactive }
+        let tail = viewModel.messages.last
+        let streamingTail = viewModel.isStreaming && (tail?.isStreaming ?? false)
 
+        // The revision is built even while idle: `snapRequest` must reach the driver so
+        // Jump-to-latest / session-switch snaps work without a live stream. Everything
+        // else collapses to the inactive shape when nothing is streaming.
         return StreamingTailRevision(
-            messageID: message.id,
+            messageID: streamingTail ? tail?.id : nil,
             messageCount: viewModel.messages.count,
             snapRequest: bottomSnapRequest,
-            contentLength: message.content.utf8.count,
-            thinkingLength: message.thinking.utf8.count)
+            contentLength: streamingTail ? (tail?.content.utf8.count ?? 0) : 0,
+            thinkingLength: streamingTail ? (tail?.thinking.utf8.count ?? 0) : 0)
+    }
+
+    /// Updates the follow bookkeeping and mirrors *transitions* into the published
+    /// `showsJumpToLatest` (the Jump-to-latest button's visibility). Called from
+    /// scroll-geometry callbacks — only a flip publishes state, never a steady tick.
+    private func setPinned(_ pinned: Bool) {
+        guard scrollCoordinator.userPinnedToBottom != pinned else { return }
+        scrollCoordinator.userPinnedToBottom = pinned
+        showsJumpToLatest = !pinned
+    }
+
+    /// Jump-to-latest: re-engage the follow and issue an explicit snap so the transcript
+    /// scrolls even when nothing is streaming.
+    private func jumpToLatest() {
+        setPinned(true)
+        bottomSnapRequest &+= 1
     }
 
     private func submitMessage() {
         guard supervisor.state == .ready, viewModel.canSend else { return }
-        scrollCoordinator.userPinnedToBottom = true
+        setPinned(true)
         viewModel.send()
         bottomSnapRequest &+= 1
     }
@@ -543,5 +701,142 @@ struct GeneratingIndicator: View {
         .padding(.vertical, 12)
         .background(Color(nsColor: .controlBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+/// Conversation history sidebar: the persisted session list with new/select/rename/
+/// delete. Selection routes through `ChatViewModel.selectSession(_:)`, which flushes
+/// the outgoing conversation to disk and swaps the active transcript.
+private struct ChatHistorySidebar: View {
+    @ObservedObject var viewModel: ChatViewModel
+    let onRename: (ChatSession) -> Void
+    let onDelete: (ChatSession) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Chats")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    viewModel.newChat()
+                } label: {
+                    Image(systemName: "plus.circle")
+                }
+                .buttonStyle(.borderless)
+                .disabled(viewModel.isStreaming || viewModel.messages.isEmpty)
+                .help("Start a new conversation (⌘N)")
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+
+            Divider()
+
+            if viewModel.sessions.isEmpty {
+                Spacer()
+                VStack(spacing: 6) {
+                    Image(systemName: "bubble.left.and.bubble.right")
+                        .font(.system(size: 22))
+                        .foregroundStyle(.tertiary)
+                    Text("No conversations yet")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("Your chats will appear here.")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(12)
+                .multilineTextAlignment(.center)
+                Spacer()
+            } else {
+                List(selection: Binding(
+                    get: { viewModel.activeSessionID },
+                    set: { if let id = $0 { viewModel.selectSession(id) } }
+                )) {
+                    ForEach(viewModel.sessions) { session in
+                        ChatSessionRow(session: session)
+                            .tag(session.id)
+                            .listRowInsets(EdgeInsets(top: 4, leading: 10, bottom: 4, trailing: 10))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .contextMenu {
+                                Button("Rename…") { onRename(session) }
+                                Button("Delete", role: .destructive) { onDelete(session) }
+                            }
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+            }
+        }
+        .background(Color(nsColor: .windowBackgroundColor).opacity(0.35))
+    }
+}
+
+/// One sidebar row: conversation title over a secondary metadata line.
+private struct ChatSessionRow: View {
+    let session: ChatSession
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(session.title)
+                .font(.callout.weight(.medium))
+                .lineLimit(1)
+                .truncationMode(.tail)
+            HStack(spacing: 4) {
+                Text(session.updatedAt, format: .relative(presentation: .named))
+                Text("·")
+                Text("\(session.messages.count) message\(session.messages.count == 1 ? "" : "s")")
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Compact rename sheet driven by the sidebar context menu. Enter commits, Esc cancels.
+private struct RenameChatSheet: View {
+    let initialTitle: String
+    let onCommit: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var title = ""
+    @FocusState private var focused: Bool
+
+    private var trimmedTitle: String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Rename Conversation")
+                .font(.headline)
+            TextField("Title", text: $title)
+                .textFieldStyle(.roundedBorder)
+                .focused($focused)
+                .onSubmit(commit)
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button("Rename", action: commit)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(trimmedTitle.isEmpty)
+            }
+        }
+        .padding(16)
+        .frame(width: 320)
+        .onAppear {
+            title = initialTitle
+            focused = true
+        }
+    }
+
+    private func commit() {
+        guard !trimmedTitle.isEmpty else { return }
+        onCommit(trimmedTitle)
+        dismiss()
     }
 }

@@ -7,6 +7,14 @@ import XCTest
 final class ChatViewModelTests: XCTestCase {
     private var cancellables: Set<AnyCancellable> = []
 
+    /// Fresh temp directory per VM so session persistence in tests never touches the
+    /// user's real `~/Library/Application Support/DS4 Control/Chats`.
+    private func makeTempStore() -> ChatSessionStore {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("chat-vm-tests-\(UUID().uuidString)", isDirectory: true)
+        return ChatSessionStore(directory: dir)
+    }
+
     /// Builds a VM whose stream yields the given text deltas (and an optional
     /// trailing usage event) then finishes.
     private func makeViewModel(
@@ -28,7 +36,8 @@ final class ChatViewModelTests: XCTestCase {
                     }
                     if let error { continuation.finish(throwing: error) } else { continuation.finish() }
                 }
-            }
+            },
+            sessionStore: makeTempStore()
         )
     }
 
@@ -171,7 +180,8 @@ final class ChatViewModelTests: XCTestCase {
                     c.yield(.text("Answer."))
                     c.finish()
                 }
-            })
+            },
+            sessionStore: makeTempStore())
         viewModel.input = "go"
         viewModel.send()
         await awaitStreamCompletion(viewModel)

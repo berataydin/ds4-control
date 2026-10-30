@@ -1,12 +1,13 @@
 import Foundation
 
-enum ChatRole {
+/// Raw values are the wire/persistence spellings (`user` / `assistant`).
+enum ChatRole: String, Codable {
     case user
     case assistant
 }
 
 /// Generation performance for one assistant reply. `nil` fields render as omitted.
-struct GenerationStats: Equatable {
+struct GenerationStats: Equatable, Codable {
     var ttftSeconds: Double?
     var decodeSeconds: Double?
     var completionTokens: Int?
@@ -18,7 +19,7 @@ struct GenerationStats: Equatable {
     }
 }
 
-struct ChatMessage: Identifiable, Equatable {
+struct ChatMessage: Identifiable, Equatable, Codable {
     let id: UUID
     var role: ChatRole
     var content: String

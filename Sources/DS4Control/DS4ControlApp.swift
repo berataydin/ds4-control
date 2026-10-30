@@ -34,7 +34,7 @@ struct DS4ControlApp: App {
                 }
             )
         )
-        appDelegate.configure(app: app, supervisor: supervisor)
+        appDelegate.configure(app: app, supervisor: supervisor, chat: chat)
     }
 
     var body: some Scene {
@@ -60,6 +60,7 @@ struct DS4ControlApp: App {
         Window("DS4 Chat", id: "chat") {
             ChatView(viewModel: chat).environmentObject(app).environmentObject(supervisor)
         }
+        .defaultSize(width: 980, height: 720)
     }
 
     private func startMenuBarServicesIfNeeded() {
@@ -83,9 +84,11 @@ private final class MenuBarStartupCoordinator {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var terminationCoordinator: AppTerminationCoordinator?
+    private var chat: ChatViewModel?
 
-    func configure(app: AppState, supervisor: SupervisorService) {
+    func configure(app: AppState, supervisor: SupervisorService, chat: ChatViewModel) {
         terminationCoordinator = AppTerminationCoordinator(app: app, supervisor: supervisor)
+        self.chat = chat
     }
 
     func applicationDidFinishLaunching(_ n: Notification) {
@@ -93,6 +96,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // Flush a mid-stream reply to the session store before anything else — the
+        // terminate flow below may stop the server (and the process) without returning
+        // to the chat pipeline.
+        chat?.persistBeforeQuit()
         guard let terminationCoordinator else {
             NSLog("DS4 Control termination coordination is unavailable; terminating immediately")
             return .terminateNow

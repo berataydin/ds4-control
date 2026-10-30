@@ -1,10 +1,17 @@
 import Combine
 import Foundation
 
-/// Drives a single chat conversation against ds4-server.
+/// Drives the built-in chat against ds4-server, across multiple persisted conversations.
 ///
 /// The streaming source is injected (`streamProvider`) so tests can feed a
 /// canned `AsyncThrowingStream` with no sockets or scheduler timing.
+///
+/// Multi-session model: `messages` stays the *active* transcript (the hot path the
+/// flush loop mutates per token is untouched), while `sessions` holds the persisted
+/// conversations, newest-first. `activeSessionID == nil` means a fresh draft that is
+/// only written to disk once its first message is sent. The transcript is mirrored to
+/// disk at conversation boundaries (send, stream end/stop, clear, switch, rename) —
+/// never per streamed token.
 @MainActor
 final class ChatViewModel: ObservableObject {
     @Published var messages: [ChatMessage] = []
@@ -13,10 +20,15 @@ final class ChatViewModel: ObservableObject {
     @Published private(set) var hasReceivedFirstToken = false
     @Published private(set) var contextUsedTokens = 0
     @Published var errorText: String?
+    /// All persisted conversations, newest-first. Drives the history sidebar.
+    @Published private(set) var sessions: [ChatSession] = []
+    /// The persisted conversation `messages` mirrors; nil for a not-yet-sent draft.
+    @Published var activeSessionID: UUID?
 
     let model: String
     private let port: () -> Int
     private let streamProvider: (Int, String, [ChatMessage]) -> AsyncThrowingStream<ChatStreamEvent, Error>
+    private let store: ChatSessionStore
     private var streamTask: Task<Void, Never>?
 
     // In-flight timing/usage for the current reply (MainActor-isolated state, not
@@ -65,15 +77,31 @@ final class ChatViewModel: ObservableObject {
     init(
         model: String,
         port: @escaping () -> Int,
-        streamProvider: @escaping (Int, String, [ChatMessage]) -> AsyncThrowingStream<ChatStreamEvent, Error>
+        streamProvider: @escaping (Int, String, [ChatMessage]) -> AsyncThrowingStream<ChatStreamEvent, Error>,
+        sessionStore: ChatSessionStore = ChatSessionStore()
     ) {
         self.model = model
         self.port = port
         self.streamProvider = streamProvider
+        self.store = sessionStore
+
+        // Reopen the most recent conversation, if any; otherwise start on a blank draft.
+        let loaded = store.loadSessions()
+        sessions = loaded
+        if let latest = loaded.first {
+            activeSessionID = latest.id
+            messages = latest.messages
+        }
     }
 
     var canSend: Bool {
         !isStreaming && !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Title of the active persisted conversation (nil while on an unsent draft).
+    var activeSessionTitle: String? {
+        guard let id = activeSessionID else { return nil }
+        return sessions.first(where: { $0.id == id })?.title
     }
 
     func send() {
@@ -83,6 +111,27 @@ final class ChatViewModel: ObservableObject {
         messages.append(ChatMessage(role: .user, content: text))
         input = ""
         errorText = nil
+
+        // Persist the user's message immediately: a draft becomes a real session here
+        // (titled from the prompt), and an existing session's transcript/updatedAt are
+        // refreshed. The assistant placeholder below stays in-memory only until the
+        // stream ends (finish/stop persist the completed reply).
+        if let id = activeSessionID, let index = sessions.firstIndex(where: { $0.id == id }) {
+            sessions[index].messages = messages
+            sessions[index].updatedAt = Date()
+            let updated = sessions.remove(at: index)
+            sessions.insert(updated, at: 0)  // keep newest-first
+            try? store.save(updated)
+        } else {
+            let now = Date()
+            let session = ChatSession(
+                title: ChatSession.title(fromFirstUserMessage: text),
+                createdAt: now, updatedAt: now, messages: messages)
+            sessions.insert(session, at: 0)
+            activeSessionID = session.id
+            try? store.save(session)
+        }
+
         isStreaming = true
         hasReceivedFirstToken = false
 
@@ -153,6 +202,7 @@ final class ChatViewModel: ObservableObject {
             messages[last].isStreaming = false
         }
         isStreaming = false
+        persistActiveSession()
     }
 
     func clear() {
@@ -160,6 +210,87 @@ final class ChatViewModel: ObservableObject {
         messages.removeAll()
         errorText = nil
         contextUsedTokens = 0
+        persistActiveSession()
+    }
+
+    // MARK: - Sessions
+
+    /// Starts a fresh draft conversation (persisted only once its first message is sent).
+    /// A no-op when the current chat is already blank; refused mid-stream (stop first).
+    func newChat() {
+        guard !isStreaming, !messages.isEmpty else { return }
+        persistActiveSession()
+        activeSessionID = nil
+        messages = []
+        errorText = nil
+        contextUsedTokens = 0
+    }
+
+    /// Switches the active transcript to another persisted conversation. The current
+    /// one is flushed to disk first; a blank draft is simply dropped.
+    func selectSession(_ id: UUID) {
+        guard !isStreaming, id != activeSessionID,
+            let session = sessions.first(where: { $0.id == id })
+        else { return }
+        persistActiveSession()
+        activeSessionID = id
+        // Normalize: a persisted session is never live (belt-and-braces alongside the
+        // store's own normalization, in case an in-memory copy skipped a save).
+        messages = session.messages.map { message in
+            var copy = message
+            copy.isStreaming = false
+            return copy
+        }
+        errorText = nil
+        contextUsedTokens = 0
+    }
+
+    /// Deletes a conversation permanently. Deleting the active one stops any in-flight
+    /// stream (flushing its partial reply to disk first) and selects the next session.
+    func deleteSession(_ id: UUID) {
+        if id == activeSessionID { stop() }
+        guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
+        sessions.remove(at: index)
+        store.delete(id)
+        guard activeSessionID == id else { return }
+        activeSessionID = nil
+        messages = []
+        errorText = nil
+        contextUsedTokens = 0
+        if let next = sessions.first {
+            selectSession(next.id)
+        }
+    }
+
+    /// Renames a conversation (trimmed, non-empty) and persists the new title.
+    func renameSession(_ id: UUID, to rawTitle: String) {
+        let title = rawTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty, let index = sessions.firstIndex(where: { $0.id == id }) else { return }
+        sessions[index].title = String(title.prefix(120))
+        try? store.save(sessions[index])
+    }
+
+    /// Flush-and-save hook for app termination: keeps a reply that was mid-stream at
+    /// quit time. The store normalizes `isStreaming` off in the encoded copy.
+    func persistBeforeQuit() {
+        if isStreaming {
+            applyPendingDeltas(includeThinking: true, force: true)
+        }
+        persistActiveSession()
+    }
+
+    /// Mirrors the active transcript into `sessions` (newest-first) and writes it to
+    /// disk. Called at conversation boundaries only — never per streamed token.
+    private func persistActiveSession() {
+        guard let id = activeSessionID,
+            let index = sessions.firstIndex(where: { $0.id == id })
+        else { return }
+        var session = sessions[index]
+        session.messages = messages
+        session.updatedAt = Date()
+        sessions.remove(at: index)
+        sessions.insert(session, at: 0)
+        try? store.save(session)
     }
 
     /// Append an incoming content delta to the pending buffer. Does NOT
@@ -236,5 +367,6 @@ final class ChatViewModel: ObservableObject {
         if let total = genTotalTokens { contextUsedTokens = total }
         isStreaming = false
         streamTask = nil
+        persistActiveSession()
     }
 }
