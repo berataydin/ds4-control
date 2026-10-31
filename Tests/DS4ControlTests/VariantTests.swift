@@ -212,8 +212,13 @@ final class VariantTests: XCTestCase {
         XCTAssertEqual(QuantSelection.flash(.q2).pickerLabel, "V4 Flash (0731) · Q2 · ~81 GiB")
         XCTAssertEqual(QuantSelection.flash(.q2q4).pickerLabel, "V4 Flash (0731) · Q2/Q4 · ~91 GiB")
         XCTAssertEqual(QuantSelection.flash(.q4).pickerLabel, "V4 Flash (0731) · Q4 · ~153 GiB")
-        XCTAssertEqual(QuantSelection.flash41(.q2).pickerLabel, "V4.1 Flash (1017) · Q2 · ~152 GiB")
-        XCTAssertEqual(QuantSelection.flash41(.mxfp4).pickerLabel, "V4.1 Flash (1017) · MXFP4 · ~278 GiB")
+        // V4.1 labels carry both footprints: resident RAM weights and the full on-disk
+        // GGUF (which includes the ~189 GiB of disk-only Engram tables ds4 streams from
+        // the SSD, so RAM and disk genuinely differ). 341 GiB = 365,713,686,528 B;
+        // 467 GiB = 501,609,136,128 B.
+        XCTAssertEqual(QuantSelection.flash41(.q2).pickerLabel, "V4.1 Flash (1017) · Q2 · ~152 GiB RAM (341 GiB disk)")
+        XCTAssertEqual(
+            QuantSelection.flash41(.mxfp4).pickerLabel, "V4.1 Flash (1017) · MXFP4 · ~278 GiB RAM (467 GiB disk)")
         // Dropdown identities stay unique so ForEach tags never collide.
         let ids = QuantSelection.availableSelections(ramGiB: 512).map(\.id)
         XCTAssertEqual(Set(ids).count, 6)
