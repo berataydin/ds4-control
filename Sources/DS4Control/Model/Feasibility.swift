@@ -765,6 +765,16 @@ func feasibility(
                     "This V4.1 Flash 1017 setup needs ~\(roundedUpGiB(fromMB: required)) GiB for its resident working set, above ds4's safe ~\(roundedUpGiB(fromMB: usableMB)) GiB budget on this Mac. Reduce context or concurrent sessions."
             )
         }
+        // When the weights ALONE exceed the usable budget, no context or session change can
+        // help — sending the user to Settings to shrink those would be a dead end, so name
+        // the real limit instead.
+        let weightsMB = roundedUpMiB(selection.quant.ggufBytes) ?? Int.max
+        if weightsMB > usableMB {
+            return .blocked(
+                reason:
+                    "This model's weights alone need ~\(roundedUpGiB(fromMB: weightsMB)) GiB, above this Mac's usable ~\(roundedUpGiB(fromMB: usableMB)) GiB — no context or session size makes it fit. Pick a smaller model from the dropdown."
+            )
+        }
         return .blocked(
             reason:
                 "This setup needs ~\(roundedUpGiB(fromMB: required)) GiB unified memory, but this Mac has ~\(Int(ramGiB)) GiB and macOS needs ~\(Int(osReserveGiB)) GiB. Reduce context or concurrent sessions."
