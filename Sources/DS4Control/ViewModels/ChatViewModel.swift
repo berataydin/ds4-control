@@ -24,6 +24,10 @@ final class ChatViewModel: ObservableObject {
     @Published private(set) var sessions: [ChatSession] = []
     /// The persisted conversation `messages` mirrors; nil for a not-yet-sent draft.
     @Published var activeSessionID: UUID?
+    /// The conversation that owns the in-flight reply. The user may switch conversations
+    /// (or start a fresh draft) mid-stream — generation keeps writing into *this*
+    /// session in the background, not into whatever transcript is on screen.
+    @Published private(set) var streamingSessionID: UUID?
 
     let model: String
     private let port: () -> Int
@@ -133,6 +137,7 @@ final class ChatViewModel: ObservableObject {
         }
 
         isStreaming = true
+        streamingSessionID = activeSessionID
         hasReceivedFirstToken = false
 
         genStart = Date()
@@ -193,16 +198,25 @@ final class ChatViewModel: ObservableObject {
         streamTask = nil
         flushTask?.cancel()
         flushTask = nil
+        let stoppedRowID = streamingMessageID
+        let stoppedSessionID = streamingSessionID
         streamingMessageID = nil
+        streamingSessionID = nil
         flushTickCount = 0
         updateInFlight = false
         pendingContentDelta = ""
         pendingThinkingDelta = ""
-        if let last = messages.indices.last, messages[last].isStreaming {
-            messages[last].isStreaming = false
+        if let rowID = stoppedRowID {
+            mutateRow(rowID, in: stoppedSessionID) { $0.isStreaming = false }
         }
         isStreaming = false
-        persistActiveSession()
+        // Persist the conversation that owned the reply — the active one, or a
+        // background session the user navigated away from.
+        if let stoppedSessionID {
+            persistSession(stoppedSessionID)
+        } else {
+            persistActiveSession()
+        }
     }
 
     func clear() {
@@ -216,9 +230,11 @@ final class ChatViewModel: ObservableObject {
     // MARK: - Sessions
 
     /// Starts a fresh draft conversation (persisted only once its first message is sent).
-    /// A no-op when the current chat is already blank; refused mid-stream (stop first).
+    /// A no-op when the current chat is already blank. Mid-stream the draft opens with
+    /// the in-flight reply continuing in the background, into its own conversation.
     func newChat() {
-        guard !isStreaming, !messages.isEmpty else { return }
+        guard isStreaming || !messages.isEmpty else { return }
+        if isStreaming { applyPendingDeltas(includeThinking: true, force: true) }
         persistActiveSession()
         activeSessionID = nil
         messages = []
@@ -227,28 +243,34 @@ final class ChatViewModel: ObservableObject {
     }
 
     /// Switches the active transcript to another persisted conversation. The current
-    /// one is flushed to disk first; a blank draft is simply dropped.
+    /// one is flushed to disk first; a blank draft is simply dropped. Allowed mid-stream:
+    /// the in-flight reply keeps generating into its owning conversation in the
+    /// background (its sidebar row shows the live indicator) and lands there on finish.
     func selectSession(_ id: UUID) {
-        guard !isStreaming, id != activeSessionID,
+        guard id != activeSessionID,
             let session = sessions.first(where: { $0.id == id })
         else { return }
+        if isStreaming { applyPendingDeltas(includeThinking: true, force: true) }
         persistActiveSession()
         activeSessionID = id
         // Normalize: a persisted session is never live (belt-and-braces alongside the
-        // store's own normalization, in case an in-memory copy skipped a save).
+        // store's own normalization, in case an in-memory copy skipped a save) — except
+        // the streaming row when re-selecting the conversation that is still generating,
+        // so it renders with the live streaming markers again.
         messages = session.messages.map { message in
             var copy = message
-            copy.isStreaming = false
+            copy.isStreaming = message.id == streamingMessageID
             return copy
         }
         errorText = nil
         contextUsedTokens = 0
     }
 
-    /// Deletes a conversation permanently. Deleting the active one stops any in-flight
-    /// stream (flushing its partial reply to disk first) and selects the next session.
+    /// Deletes a conversation permanently. Deleting the active one — or the one still
+    /// generating in the background — stops any in-flight stream (flushing its partial
+    /// reply to disk first) and selects the next session.
     func deleteSession(_ id: UUID) {
-        if id == activeSessionID { stop() }
+        if id == activeSessionID || id == streamingSessionID { stop() }
         guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
         sessions.remove(at: index)
         store.delete(id)
@@ -271,22 +293,35 @@ final class ChatViewModel: ObservableObject {
     }
 
     /// Flush-and-save hook for app termination: keeps a reply that was mid-stream at
-    /// quit time. The store normalizes `isStreaming` off in the encoded copy.
+    /// quit time. The store normalizes `isStreaming` off in the encoded copy. A reply
+    /// generating into a background conversation is saved there too.
     func persistBeforeQuit() {
         if isStreaming {
             applyPendingDeltas(includeThinking: true, force: true)
         }
         persistActiveSession()
+        if let backgroundID = streamingSessionID, backgroundID != activeSessionID {
+            persistSession(backgroundID)
+        }
     }
 
     /// Mirrors the active transcript into `sessions` (newest-first) and writes it to
     /// disk. Called at conversation boundaries only — never per streamed token.
     private func persistActiveSession() {
-        guard let id = activeSessionID,
-            let index = sessions.firstIndex(where: { $0.id == id })
-        else { return }
+        guard let id = activeSessionID else { return }
+        persistSession(id)
+    }
+
+    /// Saves one conversation, newest-first. For the active conversation the visible
+    /// transcript (`messages`) is the source of truth; for a background conversation
+    /// (stream continuing while the user is elsewhere) its own entry in `sessions`
+    /// already carries the latest content and is saved as-is.
+    private func persistSession(_ id: UUID) {
+        guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
         var session = sessions[index]
-        session.messages = messages
+        if id == activeSessionID {
+            session.messages = messages
+        }
         session.updatedAt = Date()
         sessions.remove(at: index)
         sessions.insert(session, at: 0)
@@ -319,28 +354,52 @@ final class ChatViewModel: ObservableObject {
         applyPendingDeltas(includeThinking: includeThinking, force: false)
     }
 
-    /// Drain the pending buffers into the streaming message's row. Skips while an update is
-    /// in flight unless `force` (finish()/stop() use `force: true` to drain synchronously).
-    /// A real mutation marks in-flight; the next `tickFlush` clears it (cooldown).
+    /// Drain the pending buffers into the streaming message's row — wherever it lives:
+    /// the visible transcript when its conversation is on screen, otherwise its owning
+    /// session in `sessions` (a background stream after a mid-stream switch). Skips while
+    /// an update is in flight unless `force` (finish()/stop() use `force: true` to drain
+    /// synchronously). A visible-transcript mutation marks in-flight (the render
+    /// cooldown); background writes only touch the sidebar model and skip the cooldown.
     @MainActor
     func applyPendingDeltas(includeThinking: Bool, force: Bool) {
         if !force && updateInFlight { return }
-        guard let id = streamingMessageID,
-            let index = messages.firstIndex(where: { $0.id == id })
-        else { return }
+        guard let id = streamingMessageID else { return }
         var mutated = false
-        if !pendingContentDelta.isEmpty {
-            messages[index].content += pendingContentDelta
-            pendingContentDelta = ""
-            mutated = true
-        }
-        if includeThinking && !pendingThinkingDelta.isEmpty {
-            messages[index].thinking += pendingThinkingDelta
-            pendingThinkingDelta = ""
-            mutated = true
+        let location = mutateRow(id, in: streamingSessionID) { row in
+            if !pendingContentDelta.isEmpty {
+                row.content += pendingContentDelta
+                pendingContentDelta = ""
+                mutated = true
+            }
+            if includeThinking && !pendingThinkingDelta.isEmpty {
+                row.thinking += pendingThinkingDelta
+                pendingThinkingDelta = ""
+                mutated = true
+            }
         }
         guard mutated else { return }
-        if !force { updateInFlight = true }  // cleared by the next tickFlush (cooldown)
+        if !force, location == .visibleTranscript { updateInFlight = true }  // cooldown
+    }
+
+    /// Where `mutateRow(_:in:_:)` found the message row.
+    enum StreamingRowLocation { case visibleTranscript, backgroundSession, notFound }
+
+    /// Applies `mutate` to a message row by id: the visible transcript first, then its
+    /// owning background session. `.notFound` covers a transcript cleared away.
+    @discardableResult
+    private func mutateRow(
+        _ id: UUID, in sessionID: UUID?, _ mutate: (inout ChatMessage) -> Void
+    ) -> StreamingRowLocation {
+        if let index = messages.firstIndex(where: { $0.id == id }) {
+            mutate(&messages[index])
+            return .visibleTranscript
+        }
+        guard let sessionID,
+            let sIndex = sessions.firstIndex(where: { $0.id == sessionID }),
+            let mIndex = sessions[sIndex].messages.lastIndex(where: { $0.id == id })
+        else { return .notFound }
+        mutate(&sessions[sIndex].messages[mIndex])
+        return .backgroundSession
     }
 
     private func finish(_ id: UUID) {
@@ -350,23 +409,33 @@ final class ChatViewModel: ObservableObject {
         applyPendingDeltas(includeThinking: true, force: true)
         flushTask?.cancel()
         flushTask = nil
+        let finishedSessionID = streamingSessionID
         streamingMessageID = nil
+        streamingSessionID = nil
         flushTickCount = 0
         updateInFlight = false
 
-        if let index = messages.firstIndex(where: { $0.id == id }) {
-            messages[index].isStreaming = false
+        mutateRow(id, in: finishedSessionID) { row in
+            row.isStreaming = false
             if let start = genStart, let first = genFirstToken {
-                messages[index].stats = GenerationStats(
+                row.stats = GenerationStats(
                     ttftSeconds: first.timeIntervalSince(start),
                     decodeSeconds: Date().timeIntervalSince(first),
                     completionTokens: genCompletionTokens
                 )
             }
         }
-        if let total = genTotalTokens { contextUsedTokens = total }
+        // The status-bar context meter tracks the conversation on screen; a background
+        // reply's usage belongs to its own session, surfaced when the user returns.
+        if let total = genTotalTokens, activeSessionID == finishedSessionID {
+            contextUsedTokens = total
+        }
         isStreaming = false
         streamTask = nil
-        persistActiveSession()
+        if let finishedSessionID {
+            persistSession(finishedSessionID)
+        } else {
+            persistActiveSession()
+        }
     }
 }

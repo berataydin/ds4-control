@@ -222,4 +222,140 @@ final class ChatViewModelTests: XCTestCase {
         viewModel.tickFlush()  // resumes → applies "B"
         XCTAssertEqual(viewModel.messages[0].content, "AB")
     }
+
+    // MARK: - Mid-stream conversation switching
+
+    /// A stream the test drives by hand: deltas are yielded when the test chooses and the
+    /// stream stays open until the test finishes it, so mid-stream state is observable.
+    private final class GatedStream {
+        private(set) var continuation: AsyncThrowingStream<ChatStreamEvent, Error>.Continuation?
+        var provider: (Int, String, [ChatMessage]) -> AsyncThrowingStream<ChatStreamEvent, Error> {
+            { [weak self] _, _, _ in
+                AsyncThrowingStream { continuation in
+                    self?.continuation = continuation
+                }
+            }
+        }
+    }
+
+    private func makeGatedViewModel() -> (viewModel: ChatViewModel, stream: GatedStream) {
+        let stream = GatedStream()
+        let viewModel = ChatViewModel(
+            model: "deepseek-v4-pro", port: { 8000 },
+            streamProvider: stream.provider,
+            sessionStore: makeTempStore())
+        return (viewModel, stream)
+    }
+
+    /// Lets the live 33ms flush loop apply whatever was just yielded (a couple of ticks,
+    /// well within the sleep) — mid-stream content assertions stay deterministic.
+    private func letFlushApply() async {
+        try? await Task.sleep(nanoseconds: 150_000_000)
+    }
+
+    func testSelectSessionMidStreamContinuesReplyInBackgroundSession() async throws {
+        let (viewModel, stream) = makeGatedViewModel()
+
+        // Conversation A: complete quickly so it exists in the sidebar.
+        viewModel.input = "first question"
+        viewModel.send()
+        stream.continuation?.yield(.text("first answer"))
+        stream.continuation?.finish()
+        await awaitStreamCompletion(viewModel)
+        let aID = try XCTUnwrap(viewModel.activeSessionID)
+        XCTAssertEqual(viewModel.messages.last?.content, "first answer")
+
+        // Conversation B: start a stream the test keeps open.
+        viewModel.newChat()
+        viewModel.input = "second question"
+        viewModel.send()
+        let bID = try XCTUnwrap(viewModel.activeSessionID)
+        XCTAssertEqual(viewModel.streamingSessionID, bID)
+        stream.continuation?.yield(.text("partial "))
+        await letFlushApply()
+
+        // Switch back to A mid-stream: the transcript shows A; the reply keeps landing in B.
+        viewModel.selectSession(aID)
+        XCTAssertEqual(viewModel.activeSessionID, aID)
+        XCTAssertEqual(viewModel.streamingSessionID, bID)
+        XCTAssertEqual(viewModel.messages.last?.content, "first answer")
+        XCTAssertTrue(viewModel.isStreaming)
+
+        stream.continuation?.yield(.text("more "))
+        stream.continuation?.yield(.text("tokens"))
+        await letFlushApply()
+        XCTAssertEqual(viewModel.messages.last?.content, "first answer")  // A untouched
+        XCTAssertEqual(
+            viewModel.sessions.first { $0.id == bID }?.messages.last?.content,
+            "partial more tokens")  // B accumulated in the background
+
+        // Returning mid-stream keeps the live streaming markers on the reply row.
+        viewModel.selectSession(bID)
+        XCTAssertEqual(viewModel.messages.last?.content, "partial more tokens")
+        XCTAssertTrue(viewModel.messages.last?.isStreaming == true)
+        viewModel.selectSession(aID)
+
+        stream.continuation?.finish()
+        await awaitStreamCompletion(viewModel)
+        XCTAssertFalse(viewModel.isStreaming)
+        XCTAssertNil(viewModel.streamingSessionID)
+        XCTAssertEqual(
+            viewModel.sessions.first { $0.id == bID }?.messages.last?.content,
+            "partial more tokens")
+
+        viewModel.selectSession(bID)
+        XCTAssertEqual(viewModel.messages.last?.content, "partial more tokens")
+        XCTAssertTrue(viewModel.messages.last?.isStreaming == false)
+    }
+
+    func testNewChatMidStreamKeepsReplyInOriginSession() async throws {
+        let (viewModel, stream) = makeGatedViewModel()
+        viewModel.input = "question"
+        viewModel.send()
+        let aID = try XCTUnwrap(viewModel.activeSessionID)
+        stream.continuation?.yield(.text("part one "))
+        await letFlushApply()
+
+        viewModel.newChat()
+        XCTAssertNil(viewModel.activeSessionID)
+        XCTAssertTrue(viewModel.messages.isEmpty)
+        XCTAssertEqual(viewModel.streamingSessionID, aID)  // reply still owned by A
+
+        stream.continuation?.yield(.text("part two"))
+        stream.continuation?.finish()
+        await awaitStreamCompletion(viewModel)
+
+        XCTAssertTrue(viewModel.messages.isEmpty)  // the draft stayed blank
+        XCTAssertEqual(
+            viewModel.sessions.first { $0.id == aID }?.messages.last?.content,
+            "part one part two")
+        XCTAssertNil(viewModel.streamingSessionID)
+
+        viewModel.selectSession(aID)
+        XCTAssertEqual(viewModel.messages.last?.content, "part one part two")
+    }
+
+    func testDeleteBackgroundStreamingSessionStopsStream() async throws {
+        let (viewModel, stream) = makeGatedViewModel()
+        viewModel.input = "first"
+        viewModel.send()
+        stream.continuation?.yield(.text("answer one"))
+        stream.continuation?.finish()
+        await awaitStreamCompletion(viewModel)
+        let aID = try XCTUnwrap(viewModel.activeSessionID)
+
+        viewModel.newChat()
+        viewModel.input = "second"
+        viewModel.send()
+        let bID = try XCTUnwrap(viewModel.activeSessionID)
+        viewModel.selectSession(aID)
+        XCTAssertTrue(viewModel.isStreaming)
+
+        viewModel.deleteSession(bID)
+        XCTAssertFalse(viewModel.isStreaming)
+        XCTAssertNil(viewModel.streamingSessionID)
+        XCTAssertFalse(viewModel.sessions.contains { $0.id == bID })
+        XCTAssertEqual(viewModel.activeSessionID, aID)  // still viewing A
+        XCTAssertEqual(viewModel.messages.last?.content, "answer one")
+    }
 }

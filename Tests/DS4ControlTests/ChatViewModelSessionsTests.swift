@@ -145,10 +145,11 @@ final class ChatViewModelSessionsTests: XCTestCase {
         XCTAssertEqual(makeStore().loadSessions().count, 2)
     }
 
-    func testSelectSessionDuringStreamIsRefused() async throws {
+    func testSelectSessionDuringStreamSwitchesTranscriptAndKeepsStreamOwned() async throws {
         // Pre-seed one older session WITH a message (an empty one can't be left via
         // newChat()); the VM opens it, then a draft send promotes a new session whose
-        // gated stream never finishes — select must be refused mid-stream.
+        // gated stream never finishes — selecting mid-stream switches the visible
+        // transcript while the in-flight reply stays owned by its own session.
         try makeStore().save(
             ChatSession(
                 title: "older", updatedAt: Date(timeIntervalSinceNow: -60),
@@ -167,10 +168,15 @@ final class ChatViewModelSessionsTests: XCTestCase {
 
         viewModel.selectSession(olderID)
 
-        XCTAssertEqual(viewModel.activeSessionID, streamingID)  // refused, unchanged
-        XCTAssertEqual(viewModel.messages.last?.isStreaming, true)
+        // The visible transcript switched; the stream keeps running for its own session.
+        XCTAssertEqual(viewModel.activeSessionID, olderID)
+        XCTAssertEqual(viewModel.streamingSessionID, streamingID)
+        XCTAssertTrue(viewModel.isStreaming)
+        XCTAssertEqual(viewModel.messages.first?.content, "old message")
 
         viewModel.stop()
+        XCTAssertNil(viewModel.streamingSessionID)
+        XCTAssertEqual(viewModel.activeSessionID, olderID)
     }
 
     func testDeleteActiveSessionStopsStreamAndSelectsNext() async {

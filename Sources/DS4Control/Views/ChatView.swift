@@ -55,10 +55,46 @@ struct ChatView: View {
     @State private var pendingDeleteSession: ChatSession?
 
     /// Scroll metrics observed (via `onScrollGeometryChange`) to drive the follow guard.
-    private struct ScrollMetrics: Equatable {
+    /// Internal (not private) so the follow-rule decision table is unit-testable.
+    struct ScrollMetrics: Equatable {
         var offsetY: CGFloat
         var distanceFromBottom: CGFloat
         var contentHeight: CGFloat
+        var visibleHeight: CGFloat
+    }
+
+    /// Pure decision table for the pinned-to-bottom follow guard. Extracted so the
+    /// unpin/re-pin logic is unit-testable without a live scroll view.
+    ///
+    /// Unpin rule: the viewport moved away from the tail *faster than the content grew*.
+    /// Streaming growth alone keeps `Δdistance ≈ ΔcontentHeight` (with or without a snap
+    /// — a snap drives distance to ~0, Δ strongly negative), so it never unpins; a user
+    /// scroll-up adds to the distance beyond the growth and does. This survives coalesced
+    /// growth+scroll geometry events (the norm while streaming at ~30 Hz) — the previous
+    /// "offset decreased on a stable height" rule never fired mid-stream because the height
+    /// changed on every flush tick. A stable viewport height is required so a window resize
+    /// (which moves the tail distance without any scrolling) can't fake intent.
+    enum ScrollFollowRule {
+        /// Closer than this to the tail re-engages the follow.
+        static let rePinDistance: CGFloat = 24
+        /// Minimum distance growth beyond content growth that counts as deliberate.
+        static let scrollAwayThreshold: CGFloat = 3
+        /// Viewport-height change at or below this counts as "unchanged".
+        static let viewportStableTolerance: CGFloat = 0.5
+
+        /// True when the user deliberately scrolled away from the streaming tail.
+        static func userScrolledAway(old: ScrollMetrics, new: ScrollMetrics) -> Bool {
+            let viewportStable =
+                abs(new.visibleHeight - old.visibleHeight) <= viewportStableTolerance
+            let growth = max(0, new.contentHeight - old.contentHeight)
+            let drift = new.distanceFromBottom - old.distanceFromBottom - growth
+            return viewportStable && drift > scrollAwayThreshold
+        }
+
+        /// True when the viewport is close enough to the tail to re-engage the follow.
+        static func atBottom(_ metrics: ScrollMetrics) -> Bool {
+            metrics.distanceFromBottom < rePinDistance
+        }
     }
 
     private struct StreamingTailRevision: Equatable {
@@ -85,6 +121,10 @@ struct ChatView: View {
     private struct BottomScrollDriver: NSViewRepresentable {
         let shouldFollow: Bool
         let revision: StreamingTailRevision
+        /// Live pin bookkeeping, read at snap-fire time. A snap scheduled just before the
+        /// user scrolls away must not drag them back to the tail, so the delayed closures
+        /// re-check `userPinnedToBottom` when they fire (not when they were scheduled).
+        let pinState: ScrollCoordinator
 
         func makeNSView(context _: Context) -> NSView {
             let view = NSView(frame: .zero)
@@ -107,19 +147,25 @@ struct ChatView: View {
             guard changed, !context.coordinator.scrollScheduled else { return }
 
             context.coordinator.scrollScheduled = true
-            DispatchQueue.main.async { [weak view, weak coordinator = context.coordinator] in
+            DispatchQueue.main.async { [weak view, weak coordinator = context.coordinator, pinState] in
                 coordinator?.scrollScheduled = false
                 guard let view else { return }
-                Self.scrollTranscriptToBottom(from: view)
-            }
-            if rowCountChanged {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak view] in
-                    guard let view else { return }
+                if pinState.userPinnedToBottom {
                     Self.scrollTranscriptToBottom(from: view)
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak view] in
+            }
+            if rowCountChanged {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak view, pinState] in
                     guard let view else { return }
-                    Self.scrollTranscriptToBottom(from: view)
+                    if pinState.userPinnedToBottom {
+                        Self.scrollTranscriptToBottom(from: view)
+                    }
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak view, pinState] in
+                    guard let view else { return }
+                    if pinState.userPinnedToBottom {
+                        Self.scrollTranscriptToBottom(from: view)
+                    }
                 }
             }
         }
@@ -306,7 +352,7 @@ struct ChatView: View {
             }
             .buttonStyle(.borderless)
             .keyboardShortcut("n", modifiers: .command)
-            .disabled(viewModel.isStreaming || viewModel.messages.isEmpty)
+            .disabled(viewModel.messages.isEmpty)
             .help("Start a new conversation (⌘N)")
 
             Button("Clear") {
@@ -370,7 +416,8 @@ struct ChatView: View {
         .overlay(alignment: .bottom) {
             BottomScrollDriver(
                 shouldFollow: scrollCoordinator.userPinnedToBottom,
-                revision: streamingTailRevision
+                revision: streamingTailRevision,
+                pinState: scrollCoordinator
             )
             .frame(width: 1, height: 1)
             .allowsHitTesting(false)
@@ -383,20 +430,16 @@ struct ChatView: View {
             ScrollMetrics(
                 offsetY: geometry.contentOffset.y,
                 distanceFromBottom: geometry.contentSize.height - geometry.visibleRect.maxY,
-                contentHeight: geometry.contentSize.height)
+                contentHeight: geometry.contentSize.height,
+                visibleHeight: geometry.visibleRect.height)
         } action: { old, new in
-            // Disengage the follow on a deliberate scroll-up: the offset *decreases*.
-            // A trackpad scroll-up arrives as a stream of tiny decrements, so ANY decrease
-            // counts as user intent — the old single-event 40pt threshold never fired and
-            // the transcript kept snapping to the streaming tail while the user scrolled.
-            // The content-height guard keeps layout-driven shifts (streaming growth, window
-            // resize rewraps, the 50-message window sliding at send) from faking intent:
-            // those change the height in the same event, a pure scroll-up does not.
-            // Re-engage once the view is back at the bottom.
-            let contentShifted = abs(new.contentHeight - old.contentHeight) > 0.5
-            if !contentShifted && new.offsetY < old.offsetY - 0.5 {
+            // Disengage the follow the moment the user scrolls away from the tail — the
+            // distance-from-bottom grows beyond what streaming content growth explains
+            // (see ScrollFollowRule; works mid-stream, where the height changes every
+            // ~33ms flush). Re-engage once the view is back at the bottom.
+            if ScrollFollowRule.userScrolledAway(old: old, new: new) {
                 setPinned(false)
-            } else if new.distanceFromBottom < 24 {
+            } else if ScrollFollowRule.atBottom(new) {
                 setPinned(true)
             }
         }
@@ -499,6 +542,19 @@ struct ChatView: View {
         return Array(all[start..<end])
     }
 
+    /// True while a reply is still generating into a *background* conversation (the user
+    /// switched away mid-stream). The single-session server can't take a new request
+    /// until it finishes, so the input bar says where generation is running instead of
+    /// offering a stop button for a conversation that isn't on screen.
+    private var viewingBackgroundStream: Bool {
+        viewModel.isStreaming && viewModel.activeSessionID != viewModel.streamingSessionID
+    }
+
+    /// Stop control is shown only when the visible conversation is the one generating.
+    private var stopButtonVisible: Bool {
+        viewModel.isStreaming && !viewingBackgroundStream
+    }
+
     private var inputBar: some View {
         VStack(spacing: 4) {
             if let error = viewModel.errorText {
@@ -506,6 +562,16 @@ struct ChatView: View {
                     Text(error)
                         .font(.caption)
                         .foregroundStyle(.red)
+                    Spacer()
+                }
+            }
+            if viewingBackgroundStream,
+                let title = viewModel.sessions.first(where: { $0.id == viewModel.streamingSessionID })?.title
+            {
+                HStack {
+                    Text("Generating in “\(title)”… — switch back to stop")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     Spacer()
                 }
             }
@@ -536,21 +602,22 @@ struct ChatView: View {
                     .disabled(supervisor.state != .ready)
 
                 Button {
-                    if viewModel.isStreaming {
+                    if stopButtonVisible {
                         viewModel.stop()
                     } else {
                         submitMessage()
                     }
                 } label: {
-                    Image(systemName: viewModel.isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
+                    Image(systemName: stopButtonVisible ? "stop.circle.fill" : "arrow.up.circle.fill")
                         .font(.system(size: 28))
-                        .foregroundStyle(viewModel.isStreaming ? .red : .accentColor)
+                        .foregroundStyle(stopButtonVisible ? .red : .accentColor)
                 }
                 .buttonStyle(.plain)
                 .disabled(
                     supervisor.state != .ready
+                        || viewingBackgroundStream
                         || (viewModel.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            && !viewModel.isStreaming)
+                            && !stopButtonVisible)
                 )
             }
         }
@@ -724,7 +791,7 @@ private struct ChatHistorySidebar: View {
                     Image(systemName: "plus.circle")
                 }
                 .buttonStyle(.borderless)
-                .disabled(viewModel.isStreaming || viewModel.messages.isEmpty)
+                .disabled(viewModel.messages.isEmpty)
                 .help("Start a new conversation (⌘N)")
             }
             .padding(.horizontal, 12)
@@ -754,7 +821,9 @@ private struct ChatHistorySidebar: View {
                     set: { if let id = $0 { viewModel.selectSession(id) } }
                 )) {
                     ForEach(viewModel.sessions) { session in
-                        ChatSessionRow(session: session)
+                        ChatSessionRow(
+                            session: session,
+                            streaming: session.id == viewModel.streamingSessionID)
                             .tag(session.id)
                             .listRowInsets(EdgeInsets(top: 4, leading: 10, bottom: 4, trailing: 10))
                             .listRowSeparator(.hidden)
@@ -773,16 +842,27 @@ private struct ChatHistorySidebar: View {
     }
 }
 
-/// One sidebar row: conversation title over a secondary metadata line.
+/// One sidebar row: conversation title over a secondary metadata line. `streaming`
+/// shows the live-generation dot — the conversation still receiving a background
+/// reply after the user switched away mid-stream.
 private struct ChatSessionRow: View {
     let session: ChatSession
+    let streaming: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(session.title)
-                .font(.callout.weight(.medium))
-                .lineLimit(1)
-                .truncationMode(.tail)
+            HStack(spacing: 5) {
+                Text(session.title)
+                    .font(.callout.weight(.medium))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                if streaming {
+                    Circle()
+                        .fill(.orange)
+                        .frame(width: 6, height: 6)
+                        .help("Generating…")
+                }
+            }
             HStack(spacing: 4) {
                 Text(session.updatedAt, format: .relative(presentation: .named))
                 Text("·")
