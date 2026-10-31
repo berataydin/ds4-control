@@ -6,19 +6,41 @@ struct ModelRowView: View {
     @Environment(\.openWindow) private var openWindow
     let ramGiB: Double
 
-    /// Model variants offered by the popup for the machine's unified-memory tier.
-    private var variants: [Variant] {
-        if ramGiB >= 512 { return [.pro, .flash, .flash41] }
-        if ramGiB >= 96 { return [.flash, .flash41] }
-        return [.flash]
+    /// Every loadable model+quant for this machine's tier, smallest first. A stored
+    /// selection from outside the tier (e.g. Pro persisted on a 512 GiB Mac now opened on
+    /// a smaller one) stays listed so the dropdown never shows a blank choice; the
+    /// feasibility note below explains why it won't start.
+    private var options: [QuantSelection] {
+        var available = QuantSelection.availableSelections(ramGiB: ramGiB)
+        if !available.contains(app.quantSelection) { available.append(app.quantSelection) }
+        return available
+    }
+
+    /// The dropdown writes back into the persisted variant/quant preferences, so
+    /// `app.quantSelection` stays the single resolved truth everywhere else.
+    private var selection: Binding<QuantSelection> {
+        Binding(
+            get: { app.quantSelection },
+            set: { choice in
+                app.selectedVariant = choice.variant
+                switch choice {
+                case .pro: break
+                case .flash(let q): app.selectedFlashQuant = q
+                case .flash41(let q): app.selectedFlash41Quant = q
+                }
+            })
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Picker("", selection: $app.selectedVariant) {
-                ForEach(variants) { Text($0.displayName).tag($0) }
+            Picker("Model", selection: selection) {
+                ForEach(options) { option in
+                    Text(menuLabel(option))
+                        .tag(option)
+                        .disabled(!optionFits(option))
+                }
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.menu)
             .labelsHidden()
             // No model switch mid-download, and none while a server is loading or serving —
             // the popup has no Apply & Restart, so Stop comes first.
@@ -35,6 +57,23 @@ struct ModelRowView: View {
                 pausedNote(paused)
             }
             feasibilityNote(feas)
+        }
+    }
+
+    /// Dropdown row text: the friendly model label plus a downloaded marker, so the user
+    /// can see at a glance which choice starts instantly and which downloads first.
+    private func menuLabel(_ option: QuantSelection) -> String {
+        option.pickerLabel + (supervisor.isDownloaded(option) ? "  ✓ Downloaded" : "")
+    }
+
+    /// Whether the option's default launch fits this machine. Non-fitting entries stay
+    /// visible but dimmed (same policy the old Settings quant pickers had).
+    private func optionFits(_ option: QuantSelection) -> Bool {
+        switch option {
+        case .pro: return ramGiB >= 512
+        case .flash(let q): return flashQuantFits(q, ramGiB: ramGiB)
+        case .flash41(let q):
+            return flash41QuantFits(q, ramGiB: ramGiB, wiredLimitMB: effectiveWiredLimitMB(ramGiB: ramGiB))
         }
     }
 
@@ -104,7 +143,9 @@ struct ModelRowView: View {
                     }
                 }
             } else if !downloaded {
-                Button("Download \(app.selectedVariant.displayName)") {
+                // The selected model is named in the dropdown right above — the button
+                // stays a plain "Download".
+                Button("Download") {
                     supervisor.download(
                         selection: app.quantSelection,
                         highPerformance: app.highPerformanceDownload)

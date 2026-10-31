@@ -113,34 +113,30 @@ final class GUIHostOptionSourceTests: XCTestCase {
         XCTAssertFalse(help.contains("copied == id"))
     }
 
-    func testSettingsOffersV41QuantPickerAndCleanup() throws {
+    /// Model+quant selection lives solely in the popup's single dropdown; Settings keeps
+    /// the per-generation cleanup (with its selected-quant exclusion) and never duplicates
+    /// the pickers.
+    func testSettingsKeepsQuantCleanupWithoutDuplicatePickers() throws {
         let settings = try source("Sources/DS4Control/Views/SettingsView.swift")
 
-        XCTAssertTrue(settings.contains("Picker(\"V4 Flash variant\", selection: $app.selectedFlashQuant)"))
-        XCTAssertTrue(settings.contains("Picker(\"V4.1 Flash 1017 variant\", selection: $app.selectedFlash41Quant)"))
-        XCTAssertTrue(settings.contains("ForEach(Flash41Quant.allCases)"))
-        XCTAssertTrue(settings.contains("flash41QuantFits("))
+        XCTAssertFalse(settings.contains("Picker(\"V4 Flash variant\""))
+        XCTAssertFalse(settings.contains("Picker(\"V4.1 Flash 1017 variant\""))
+        XCTAssertTrue(settings.contains("Model & quant are picked in the menu-bar popup"))
         XCTAssertTrue(settings.contains("supervisor.cleanupUnusedFlash41Quants(keep: app.selectedFlash41Quant)"))
     }
 
-    /// The variant pickers live in the Server group so the Apply & Restart Server button that
-    /// directly follows it is the obvious way to apply a model change while the server runs;
-    /// both cleanups consolidated under Downloads. Anchors respect SwiftUI's trailing-closure
-    /// source order, where a section's rows precede its `} header:` text.
-    func testSettingsVariantPickersSitInServerGroupBeforeApplyRestart() throws {
+    /// With the quant pickers moved to the popup, the Server group holds launch parameters
+    /// only; Apply & Restart still follows it, and both cleanups stay under Downloads.
+    /// Anchors respect SwiftUI's trailing-closure source order, where a section's rows
+    /// precede its `} header:` text.
+    func testSettingsServerGroupPrecedesApplyRestartAndDownloads() throws {
         let settings = try source("Sources/DS4Control/Views/SettingsView.swift")
 
         let server = try XCTUnwrap(settings.range(of: "Text(\"Server\")"))
         let kvCache = try XCTUnwrap(settings.range(of: "Toggle(\"Disk KV cache\", isOn: $app.kvDiskCache)"))
-        let flash = try XCTUnwrap(
-            settings.range(of: "Picker(\"V4 Flash variant\", selection: $app.selectedFlashQuant)"))
-        let flash41 = try XCTUnwrap(
-            settings.range(of: "Picker(\"V4.1 Flash 1017 variant\", selection: $app.selectedFlash41Quant)"))
         let apply = try XCTUnwrap(
             settings.range(of: #"Button("Apply & Restart Server") { restart() }"#))
-        XCTAssertLessThan(kvCache.lowerBound, flash.lowerBound)
-        XCTAssertLessThan(flash.lowerBound, flash41.lowerBound)
-        XCTAssertLessThan(flash41.lowerBound, server.lowerBound)
+        XCTAssertLessThan(kvCache.lowerBound, server.lowerBound)
         XCTAssertLessThan(server.lowerBound, apply.lowerBound)
 
         let highPerformance = try XCTUnwrap(
@@ -229,12 +225,16 @@ final class GUIHostOptionSourceTests: XCTestCase {
         XCTAssertLessThan(partRemoval.lowerBound, finalRemoval.lowerBound)
     }
 
-    /// The popup offers V4.1 Flash beginning at the supported 96 GiB memory tier.
-    func testModelRowOffersFlash41ByRAMTier() throws {
+    /// The popup picks model + quant from ONE menu-style dropdown fed by
+    /// `QuantSelection.availableSelections` (tier behavior unit-tested in VariantTests);
+    /// RAM-tier branching no longer lives in the view, and downloaded models are marked.
+    func testModelRowOffersSingleModelDropdown() throws {
         let modelRow = try source("Sources/DS4Control/Views/ModelRowView.swift")
 
-        XCTAssertTrue(modelRow.contains("if ramGiB >= 512 { return [.pro, .flash, .flash41] }"))
-        XCTAssertTrue(modelRow.contains("if ramGiB >= 96 { return [.flash, .flash41] }"))
-        XCTAssertTrue(modelRow.contains("return [.flash]"))
+        XCTAssertTrue(modelRow.contains("Picker(\"Model\", selection: selection)"))
+        XCTAssertTrue(modelRow.contains(".pickerStyle(.menu)"))
+        XCTAssertFalse(modelRow.contains(".pickerStyle(.segmented)"))
+        XCTAssertTrue(modelRow.contains("QuantSelection.availableSelections(ramGiB:"))
+        XCTAssertTrue(modelRow.contains("supervisor.isDownloaded(option)"))
     }
 }
