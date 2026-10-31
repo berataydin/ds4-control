@@ -328,7 +328,11 @@ extension QuantSelection: Identifiable {
 
     /// Dropdown label: model generation, quant recipe, and approximate resident weights —
     /// everything needed to tell the options apart at a glance, e.g.
-    /// "V4.1 Flash (1017) · MXFP4 · ~278 GiB".
+    /// "V4.1 Flash (1017) · MXFP4 · ~278 GiB RAM (467 GiB disk)". V4.1 also names its
+    /// full on-disk size: its GGUFs carry ~189 GiB of Engram tables that ds4 keeps on
+    /// disk and streams from the SSD (munmap'd at load, never wired into memory), so the
+    /// RAM and disk footprints genuinely differ there. Pro/0731 are fully resident — the
+    /// one number is both.
     var pickerLabel: String {
         switch self {
         case .pro:
@@ -343,7 +347,8 @@ extension QuantSelection: Identifiable {
             return "V4 Flash (0731) · \(quantName) · ~\(Int(q.quant.weightsGiB)) GiB"
         case .flash41(let q):
             let quantName = q == .q2 ? "Q2" : "MXFP4"
-            return "V4.1 Flash (1017) · \(quantName) · ~\(Int(q.quant.weightsGiB)) GiB"
+            let diskGiB = Int((Double(q.quant.ggufBytes) / 1_073_741_824).rounded())
+            return "V4.1 Flash (1017) · \(quantName) · ~\(Int(q.quant.weightsGiB)) GiB RAM (\(diskGiB) GiB disk)"
         }
     }
 }
