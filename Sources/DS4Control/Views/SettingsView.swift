@@ -313,24 +313,12 @@ struct SettingsView: View {
                     Text("GPU power duty")
                 }
                 Toggle("Disk KV cache", isOn: $app.kvDiskCache)
-                Picker("V4 Flash variant", selection: $app.selectedFlashQuant) {
-                    ForEach(FlashQuant.allCases) { q in
-                        Text(q.label + (supervisor.isFlashQuantDownloaded(q) ? "  (downloaded)" : ""))
-                            .tag(q)
-                            .disabled(!flashQuantFits(q, ramGiB: ram))
-                    }
-                }
-                .disabled(supervisor.state == .downloading)  // locked while a download is in progress
-                Picker("V4.1 Flash 1017 variant", selection: $app.selectedFlash41Quant) {
-                    ForEach(Flash41Quant.allCases) { q in
-                        Text(q.label + (supervisor.isFlash41QuantDownloaded(q) ? "  (downloaded)" : ""))
-                            .tag(q)
-                            .disabled(
-                                !flash41QuantFits(
-                                    q, ramGiB: ram, wiredLimitMB: effectiveWiredLimitMB(ramGiB: ram)))
-                    }
-                }
-                .disabled(supervisor.state == .downloading)  // locked while a download is in progress
+                // The model + quant itself is chosen in the menu-bar popup's single
+                // dropdown — Settings only holds the launch parameters around it.
+                Text("Model & quant are picked in the menu-bar popup; Apply & Restart below switches a running server to it.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             } header: {
                 Text("Server")
             }

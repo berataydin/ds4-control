@@ -276,7 +276,7 @@ enum Flash41Quant: String, CaseIterable, Identifiable, Codable {
 /// The resolved model+quant choice that replaces the old `(variant, flashQuant)` pair
 /// throughout the app. V4 Pro is always pro-imatrix; each Flash generation has its own
 /// quant picker.
-enum QuantSelection: Equatable {
+enum QuantSelection: Equatable, Hashable {
     case pro
     case flash(FlashQuant)
     case flash41(Flash41Quant)
@@ -301,6 +301,49 @@ enum QuantSelection: Equatable {
         switch self {
         case .flash41(let q): return "\(variant.kvCacheDirectoryName)-\(q.rawValue)"
         case .pro, .flash: return variant.kvCacheDirectoryName
+        }
+    }
+}
+
+extension QuantSelection: Identifiable {
+    /// Stable identity for ForEach/tag in the popup's model dropdown.
+    var id: String {
+        switch self {
+        case .pro: return "pro"
+        case .flash(let q): return "flash-\(q.rawValue)"
+        case .flash41(let q): return "flash41-\(q.rawValue)"
+        }
+    }
+
+    /// Every concrete loadable model offered to the machine's unified-memory tier,
+    /// smallest first: the Flash 0731 quants, then V4.1 1017 from 96 GiB, then Pro from
+    /// 512 GiB. One flat list for the popup's single model dropdown — the old two-step
+    /// UX (variant segments here + per-generation quant pickers in Settings) is gone.
+    static func availableSelections(ramGiB: Double) -> [QuantSelection] {
+        var options = FlashQuant.allCases.map { QuantSelection.flash($0) }
+        if ramGiB >= 96 { options += Flash41Quant.allCases.map { QuantSelection.flash41($0) } }
+        if ramGiB >= 512 { options.append(.pro) }
+        return options
+    }
+
+    /// Dropdown label: model generation, quant recipe, and approximate resident weights —
+    /// everything needed to tell the options apart at a glance, e.g.
+    /// "V4.1 Flash (1017) · MXFP4 · ~278 GiB".
+    var pickerLabel: String {
+        switch self {
+        case .pro:
+            return "V4 Pro (0813) · ~\(Int(Quant.proImatrix.weightsGiB)) GiB"
+        case .flash(let q):
+            let quantName: String
+            switch q {
+            case .q2: quantName = "Q2"
+            case .q2q4: quantName = "Q2/Q4"
+            case .q4: quantName = "Q4"
+            }
+            return "V4 Flash (0731) · \(quantName) · ~\(Int(q.quant.weightsGiB)) GiB"
+        case .flash41(let q):
+            let quantName = q == .q2 ? "Q2" : "MXFP4"
+            return "V4.1 Flash (1017) · \(quantName) · ~\(Int(q.quant.weightsGiB)) GiB"
         }
     }
 }

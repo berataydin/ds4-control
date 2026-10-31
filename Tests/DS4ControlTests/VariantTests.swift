@@ -192,6 +192,32 @@ final class VariantTests: XCTestCase {
             XCTAssertEqual(QuantSelection.flash(q).kvCacheDirectoryName, "kv-flash-0731")
         }
     }
+    /// The popup's single model dropdown lists every loadable model+quant for the RAM
+    /// tier, smallest first — the replacement for variant segments + Settings pickers.
+    func testAvailableSelectionsByRamTier() {
+        // Below 96 GiB: only the 0731 Flash quants.
+        XCTAssertEqual(
+            QuantSelection.availableSelections(ramGiB: 64),
+            [.flash(.q2), .flash(.q2q4), .flash(.q4)])
+        // From 96 GiB both V4.1 1017 quants join; from 512 GiB Pro comes last.
+        XCTAssertEqual(
+            QuantSelection.availableSelections(ramGiB: 96),
+            [.flash(.q2), .flash(.q2q4), .flash(.q4), .flash41(.q2), .flash41(.mxfp4)])
+        let proTier = QuantSelection.availableSelections(ramGiB: 512)
+        XCTAssertEqual(proTier.count, 6)
+        XCTAssertEqual(proTier.last, .pro)
+    }
+    func testPickerLabels() {
+        XCTAssertEqual(QuantSelection.pro.pickerLabel, "V4 Pro (0813) · ~432 GiB")
+        XCTAssertEqual(QuantSelection.flash(.q2).pickerLabel, "V4 Flash (0731) · Q2 · ~81 GiB")
+        XCTAssertEqual(QuantSelection.flash(.q2q4).pickerLabel, "V4 Flash (0731) · Q2/Q4 · ~91 GiB")
+        XCTAssertEqual(QuantSelection.flash(.q4).pickerLabel, "V4 Flash (0731) · Q4 · ~153 GiB")
+        XCTAssertEqual(QuantSelection.flash41(.q2).pickerLabel, "V4.1 Flash (1017) · Q2 · ~152 GiB")
+        XCTAssertEqual(QuantSelection.flash41(.mxfp4).pickerLabel, "V4.1 Flash (1017) · MXFP4 · ~278 GiB")
+        // Dropdown identities stay unique so ForEach tags never collide.
+        let ids = QuantSelection.availableSelections(ramGiB: 512).map(\.id)
+        XCTAssertEqual(Set(ids).count, 6)
+    }
     func testLegacyFlash41FilenamesAreLimitedToPreviousGeneration() {
         XCTAssertEqual(
             Quant.legacyFlash41Filenames,
