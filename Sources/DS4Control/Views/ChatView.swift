@@ -645,7 +645,8 @@ struct MessageBubble: View {
                 if message.role == .assistant, !message.thinking.isEmpty {
                     ThinkingDisclosure(
                         text: message.thinking,
-                        streaming: message.isStreaming && message.content.isEmpty)
+                        streaming: message.isStreaming && message.content.isEmpty,
+                        stats: message.stats)
                 }
                 // Show the answer bubble once content arrives; while only reasoning is still
                 // streaming (content empty, thinking present) the disclosure stands in for it,
@@ -714,40 +715,82 @@ struct MessageBubble: View {
         if seconds < 1 { return "\(Int((seconds * 1000).rounded())) ms" }
         return String(format: "%.1fs", seconds)
     }
+
+    /// Totals for the collapsed thinking header, lighter than the bubble's stats line:
+    /// total wall time (TTFT + decode) and the token count, e.g. "8.9s · 1204 tok".
+    /// nil when nothing is known (no timing) — the header then shows just "Thinking".
+    static func thinkingStatsLine(_ stats: GenerationStats) -> String? {
+        var parts: [String] = []
+        let total = (stats.ttftSeconds ?? 0) + (stats.decodeSeconds ?? 0)
+        if total > 0 { parts.append(formatDuration(total)) }
+        if let tokens = stats.completionTokens { parts.append("\(tokens) tok") }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
 }
 
 /// Think-Max reasoning, hidden by default in a collapsed disclosure. The reasoning is built
 /// only when expanded, so collapsed reasoning costs nothing to render (the deltas just
 /// accumulate in the model).
 ///
-/// Rendered via `MarkdownText` (pure-SwiftUI Textual). The old `.fixedSize`/no-greedy-width
-/// guards existed only to stop the NSTextView width↔height layout loop (the chat-freeze bug);
-/// with no NSView in the tree that loop is structurally gone, so they're removed.
+/// Expanded long reasoning gets its own bounded, independently scrollable pane: a Max-Think
+/// chain can run for tens of thousands of tokens, and a row that tall inside the transcript
+/// List breaks its scrolling (the view keeps snapping back to the tail while the user reads).
+/// The pane keeps the transcript row a sane height and makes browsing the reasoning fully
+/// independent of generation and of the transcript's follow-the-tail logic. Short reasoning
+/// stays inline so a few lines don't get a scroll bar of their own.
+///
+/// When the reply finished, the collapsed header also shows its totals (duration · tokens)
+/// in a lighter tertiary style — the same numbers the bubble's stats line carries.
 struct ThinkingDisclosure: View {
     let text: String
     let streaming: Bool
+    var stats: GenerationStats? = nil
     @State private var expanded = false
+
+    /// Reasoning longer than this (≈20 lines) renders in the capped scroll pane.
+    private static let scrollPaneThreshold = 900
+    /// Cap for the expanded pane — tall enough to read comfortably, short enough that the
+    /// transcript row never becomes the tallest thing in the window.
+    private static let paneMaxHeight: CGFloat = 460
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Button {
-                expanded.toggle()
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: expanded ? "chevron.down" : "chevron.right")
-                        .font(.caption2)
-                        .frame(width: 10)
-                    Label(streaming ? "Thinking…" : "Thinking", systemImage: "brain")
-                        .font(.caption)
+            HStack(spacing: 8) {
+                Button {
+                    expanded.toggle()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: expanded ? "chevron.down" : "chevron.right")
+                            .font(.caption2)
+                            .frame(width: 10)
+                        Label(streaming ? "Thinking…" : "Thinking", systemImage: "brain")
+                            .font(.caption)
+                    }
+                    .foregroundStyle(.secondary)
+                    .contentShape(Rectangle())
                 }
-                .foregroundStyle(.secondary)
-                .contentShape(Rectangle())
+                .buttonStyle(.plain)
+
+                if !streaming, let stats, let line = MessageBubble.thinkingStatsLine(stats) {
+                    Text(line)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
             }
-            .buttonStyle(.plain)
 
             if expanded {
-                MarkdownText(text)
-                    .opacity(0.9)
+                Group {
+                    if text.count > Self.scrollPaneThreshold {
+                        ScrollView {
+                            MarkdownText(text)
+                                .opacity(0.9)
+                        }
+                        .frame(maxHeight: Self.paneMaxHeight)
+                    } else {
+                        MarkdownText(text)
+                            .opacity(0.9)
+                    }
+                }
             }
         }
         .padding(.horizontal, 12)

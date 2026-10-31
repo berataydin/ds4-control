@@ -1,14 +1,14 @@
 {
   "schemaVersion": "mimosa-hook-status/v1",
-  "recordedAt": "2026-10-31T06:52:04.246Z",
+  "recordedAt": "2026-10-31T07:53:10.733Z",
   "sessionId": "sess_fe3555d3-756a-4192-b8e4-f0e9098fc52a",
   "event": "PostToolUse",
   "toolName": "Edit",
-  "file": "Tests/DS4ControlTests/ChatMessageTests.swift",
+  "file": "Sources/DS4Control/Views/ChatView.swift",
   "outcome": "clear",
   "coverage": "complete",
   "findingCount": 0,
-  "durationMs": 2,
+  "durationMs": 3,
   "hostState": "hook_complete",
   "reportHint": ".mimosa/reports/"
 }

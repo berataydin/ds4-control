@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "mimosa-finding-history/v1",
+  "runId": "20261031T075511689Z-61915-fcbe794343bd",
+  "runStatus": "inconclusive",
+  "errors": [
+    "baseline-read:DS4 Control.app/Contents/Resources/ds4/download_model.sh: baseline_snapshot_unreadable: file is missing from task baseline",
+    "baseline-read:DS4 Control.app/Contents/Resources/ds4/metal/generate_mxfp4_half_lut.py: baseline_snapshot_unreadable: file is missing from task baseline"
+  ],
+  "target": ".",
+  "revision": "91efa6384351620938d433641e44cbf35b4446b7",
+  "diffHash": "69f6bd222972680ddd32dd8a2b9848566bf2c0d9d393669a539579416fa97ef9",
+  "rulesVersion": "unavailable",
+  "recordedAt": "2026-10-31T07:55:11.689Z",
+  "timing": {
+    "startedAt": "2026-10-31T07:55:10.766Z",
+    "completedAt": "2026-10-31T07:55:11.689Z",
+    "durationMs": 923
+  },
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "total": 0,
+    "modelCalls": 0,
+    "measurement": "known-zero"
+  },
+  "findings": {
+    "total": 0,
+    "bySeverity": {},
+    "byStatus": {}
+  },
+  "coverage": {
+    "status": "partial",
+    "reasonCounts": {
+      "baseline_snapshot_unreadable": 2,
+      "project_check_failed": 2
+    }
+  },
+  "evidenceBoundary": "static_only",
+  "immutableReport": ".mimosa/reports/task-review-sess_fe3555d3-756a-4192-b8e4-f0e9098fc52a-20261031T075511689Z-61915-fcbe794343bd.json"
+}

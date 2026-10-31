@@ -75,4 +75,29 @@ final class ChatMessageTests: XCTestCase {
             MessageBubble.statsLine(GenerationStats(decodeSeconds: 2.0, completionTokens: 90)),
             "gen 2.0s · out 90 tok · 45.0 tok/s")
     }
+
+    // MARK: - thinking header totals (MessageBubble.thinkingStatsLine)
+
+    func testThinkingStatsLineShowsTotalDurationAndTokens() {
+        // Total wall time = TTFT + decode; tokens = server completion count.
+        XCTAssertEqual(
+            MessageBubble.thinkingStatsLine(
+                GenerationStats(ttftSeconds: 0.9, decodeSeconds: 8.0, completionTokens: 1204)),
+            "8.9s · 1204 tok")
+        // Sub-second totals render in ms, like the bubble line.
+        XCTAssertEqual(
+            MessageBubble.thinkingStatsLine(
+                GenerationStats(ttftSeconds: 0.2, decodeSeconds: 0.3, completionTokens: 9)),
+            "500 ms · 9 tok")
+    }
+
+    func testThinkingStatsLineOmitsUnknownPartsAndCanReturnNil() {
+        XCTAssertEqual(
+            MessageBubble.thinkingStatsLine(GenerationStats(completionTokens: 40)),
+            "40 tok")
+        XCTAssertEqual(
+            MessageBubble.thinkingStatsLine(GenerationStats(decodeSeconds: 2.0)),
+            "2.0s")
+        XCTAssertNil(MessageBubble.thinkingStatsLine(GenerationStats()))
+    }
 }
