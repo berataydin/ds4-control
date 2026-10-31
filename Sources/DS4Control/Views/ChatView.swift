@@ -695,12 +695,17 @@ struct MessageBubble: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// e.g. "TTFT 640 ms · gen 1.8s · 47 tok/s" — nil parts are omitted.
+    /// e.g. "TTFT 640 ms · gen 1.8s · out 1204 tok · in 156 tok · 47.3 tok/s" — nil parts
+    /// are omitted. tok/s keeps one decimal (47.3 vs the old rounded 47) because a
+    /// 0.5 tok/s step is visible on a local decode; counts stay plain (locale-invariant,
+    /// matching the duration formatting).
     static func statsLine(_ stats: GenerationStats) -> String {
         var parts: [String] = []
         if let ttft = stats.ttftSeconds { parts.append("TTFT \(formatDuration(ttft))") }
         if let decode = stats.decodeSeconds { parts.append("gen \(formatDuration(decode))") }
-        if let tps = stats.tokensPerSecond { parts.append("\(Int(tps.rounded())) tok/s") }
+        if let tokens = stats.completionTokens { parts.append("out \(tokens) tok") }
+        if let prompt = stats.promptTokens { parts.append("in \(prompt) tok") }
+        if let tps = stats.tokensPerSecond { parts.append("\(String(format: "%.1f", tps)) tok/s") }
         return parts.joined(separator: " · ")
     }
 

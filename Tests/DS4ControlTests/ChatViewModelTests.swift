@@ -130,6 +130,7 @@ final class ChatViewModelTests: XCTestCase {
         await awaitStreamCompletion(viewModel)
         let stats = viewModel.messages.last?.stats
         XCTAssertEqual(stats?.completionTokens, 90)
+        XCTAssertEqual(stats?.promptTokens, 100)
         XCTAssertNotNil(stats?.ttftSeconds)
         XCTAssertNotNil(stats?.decodeSeconds)
         XCTAssertEqual(viewModel.contextUsedTokens, 190)

@@ -11,6 +11,8 @@ struct GenerationStats: Equatable, Codable {
     var ttftSeconds: Double?
     var decodeSeconds: Double?
     var completionTokens: Int?
+    /// Prompt tokens of the request that produced this reply (server usage), when reported.
+    var promptTokens: Int? = nil
 
     /// Server-authoritative completion tokens over the client-measured decode window.
     var tokensPerSecond: Double? {

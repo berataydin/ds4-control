@@ -40,6 +40,7 @@ final class ChatViewModel: ObservableObject {
     private var genStart: Date?
     private var genFirstToken: Date?
     private var genCompletionTokens: Int?
+    private var genPromptTokens: Int?
     private var genTotalTokens: Int?
 
     // Streaming throttle: every token from ds4-server triggers a `@Published`
@@ -143,6 +144,7 @@ final class ChatViewModel: ObservableObject {
         genStart = Date()
         genFirstToken = nil
         genCompletionTokens = nil
+        genPromptTokens = nil
         genTotalTokens = nil
 
         let assistant = ChatMessage(role: .assistant, content: "", isStreaming: true)
@@ -177,8 +179,9 @@ final class ChatViewModel: ObservableObject {
                         if self.genFirstToken == nil { self.genFirstToken = Date() }
                         if !self.hasReceivedFirstToken { self.hasReceivedFirstToken = true }
                         self.bufferThinkingDelta(delta)
-                    case .usage(let completion, _, let total):
+                    case .usage(let completion, let prompt, let total):
                         self.genCompletionTokens = completion
+                        self.genPromptTokens = prompt
                         self.genTotalTokens = total
                     }
                 }
@@ -421,7 +424,8 @@ final class ChatViewModel: ObservableObject {
                 row.stats = GenerationStats(
                     ttftSeconds: first.timeIntervalSince(start),
                     decodeSeconds: Date().timeIntervalSince(first),
-                    completionTokens: genCompletionTokens
+                    completionTokens: genCompletionTokens,
+                    promptTokens: genPromptTokens
                 )
             }
         }
