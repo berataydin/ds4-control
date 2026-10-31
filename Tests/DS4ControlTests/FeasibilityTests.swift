@@ -170,6 +170,20 @@ final class FeasibilityTests: XCTestCase {
         XCTAssertTrue(reason.contains("macOS needs ~4 GiB"))
     }
 
+    /// A model whose WEIGHTS ALONE exceed the usable budget must not tell the user to
+    /// reduce context or sessions — that sends them to Settings on a dead end. It names
+    /// the real limit (e.g. Flash q4's ~157 GiB weights on a 128 GiB Mac).
+    func testWeightsAloneTooLargeSaysModelDoesNotFit() {
+        guard
+            case let .blocked(reason) = feasibility(
+                ramGiB: 128, variant: .flash, flashQuant: .q4, ctx: 32_768,
+                wiredLimitMB: Int.max)
+        else { return XCTFail("Flash q4 weights alone exceed a 128 GiB Mac's usable budget") }
+        XCTAssertTrue(reason.contains("weights alone need ~154 GiB"))
+        XCTAssertTrue(reason.contains("no context or session size makes it fit"))
+        XCTAssertFalse(reason.contains("Reduce context or concurrent sessions"))
+    }
+
     func testProSessionsThatExceedPhysicalRAMBlockUsingDs4Allocation() {
         guard
             case let .blocked(reason) = feasibility(
