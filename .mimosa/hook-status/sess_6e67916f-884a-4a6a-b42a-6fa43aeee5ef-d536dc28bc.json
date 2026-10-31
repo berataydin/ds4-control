@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-10-31T17:23:56.436Z",
+  "sessionId": "sess_6e67916f-884a-4a6a-b42a-6fa43aeee5ef",
+  "event": "PostToolUse",
+  "toolName": "Edit",
+  "file": "/Users/berataydin/.zcode/cli/memories/projects/ds4-control-31f22082af1bf58b/memory/ds4-control-user-machine-state.md",
+  "outcome": "clear",
+  "coverage": "complete",
+  "findingCount": 0,
+  "durationMs": 2,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

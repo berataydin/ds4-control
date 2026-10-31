@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "mimosa-finding-ledger-batch/v1",
+  "batchId": "stop-20261031T172908292Z-46761-f24bbb0dc042",
+  "runId": "20261031T172908292Z-46761-f24bbb0dc042",
+  "runStatus": "inconclusive",
+  "coverage": {
+    "status": "partial",
+    "reasons": [
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "DS4 Control.app/Contents/Resources/ds4/download_model.sh",
+        "detail": "file is missing from task baseline",
+        "affectsCompletion": true
+      },
+      {
+        "code": "baseline_snapshot_unreadable",
+        "stage": "baseline-read",
+        "target": "DS4 Control.app/Contents/Resources/ds4/metal/generate_mxfp4_half_lut.py",
+        "detail": "file is missing from task baseline",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "DS4 Control.app/Contents/Resources/ds4/download_model.sh",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affectsCompletion": true
+      },
+      {
+        "code": "project_check_failed",
+        "stage": "baseline-read",
+        "target": "DS4 Control.app/Contents/Resources/ds4/metal/generate_mxfp4_half_lut.py",
+        "detail": "baseline_snapshot_unreadable: file is missing from task baseline",
+        "affectsCompletion": true
+      }
+    ]
+  },
+  "source": {
+    "component": "zcode-hook",
+    "operationId": "Stop"
+  },
+  "revision": "0fce67a0de2bddc520d0b3266234356b70ebc6d8",
+  "diffHash": "69f6bd222972680ddd32dd8a2b9848566bf2c0d9d393669a539579416fa97ef9",
+  "rulesVersion": "unavailable",
+  "sessionHash": "d536dc28bc84e9deff57b8944e046bacf0ed8375846f1a8a0ce271b583f2c5de",
+  "reportRef": ".mimosa/reports/task-review-sess_6e67916f-884a-4a6a-b42a-6fa43aeee5ef-20261031T172908292Z-46761-f24bbb0dc042.json",
+  "events": [],
+  "observedFindingIds": [],
+  "verifiedFiles": [
+    {
+      "file": "DS4 Control.app/Contents/Resources/ds4/download_model.sh",
+      "direct": "complete",
+      "projectContext": "partial"
+    },
+    {
+      "file": "DS4 Control.app/Contents/Resources/ds4/metal/generate_mxfp4_half_lut.py",
+      "direct": "complete",
+      "projectContext": "partial"
+    }
+  ],
+  "recordedAt": "2026-10-31T17:29:08.529Z"
+}
